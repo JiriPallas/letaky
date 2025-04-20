@@ -162,46 +162,24 @@
       loadUploads();
     });
 
-    async function exportDataToGitHub() {
-      const token = prompt("Zadejte svůj GitHub token:");
-      const repo = "JiriPallas/letaky";
-      const path = "data/data.json";
-      const branch = "main";
-      const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}`;
+async function exportDataToGitHub() {
+  const data = JSON.parse(localStorage.getItem('adminUploads') || '[]');
 
-      const newContent = btoa(unescape(encodeURIComponent(localStorage.getItem('adminUploads'))));
+  const res = await fetch('/.netlify/functions/export', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
 
-      const current = await fetch(apiUrl, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+  const result = await res.json();
 
-      let sha = null;
-      if (current.ok) {
-        const currentData = await current.json();
-        sha = currentData.sha;
-      }
+  if (res.ok) {
+    alert("Data úspěšně exportována do GitHubu přes Netlify!");
+  } else {
+    alert("Chyba při exportu: " + result.error);
+  }
+}
 
-      const response = await fetch(apiUrl, {
-        method: "PUT",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          message: "Automatisk export från adminpanelen",
-          content: newContent,
-          branch: branch,
-          sha: sha
-        })
-      });
-
-      if (response.ok) {
-        alert("Data úspěšně exportována do GitHubu!");
-      } else {
-        const error = await response.json();
-        alert("Chyba při exportu: " + error.message);
-      }
-    }
 
     loadUploads();
   </script>
