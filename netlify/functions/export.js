@@ -1,6 +1,4 @@
-// netlify/functions/export.js
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
-
 
 exports.handler = async (event, context) => {
   if (event.httpMethod !== 'POST') {
