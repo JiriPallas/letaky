@@ -1,11 +1,116 @@
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>Admin</title>
-    <!-- Testar -->
-  </head>
-  <body>
-    <script src="https://unpkg.com/netlify-cms@^2.0.0/dist/netlify-cms.js"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin panel</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 2rem auto;
+      padding: 1rem;
+      background: #f2f2f2;
+      border-radius: 8px;
+    }
+    h1 { text-align: center; }
+    label { display: block; margin-top: 1rem; }
+    input, select, textarea {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.25rem;
+    }
+    button {
+      margin-top: 1.5rem;
+      padding: 0.7rem;
+      background: #0077cc;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .entry {
+      background: white;
+      margin-top: 2rem;
+      padding: 1rem;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Nahrát soubor</h1>
+  <form id="uploadForm">
+    <label for="file">Obrázek nebo video:</label>
+    <input type="file" id="file" required>
+
+    <label for="category">Kategorie:</label>
+    <select id="category" required>
+      <option value="Potraviny">Potraviny</option>
+      <option value="Motorová vozidla">Motorová vozidla</option>
+      <option value="Bydlení">Bydlení</option>
+      <option value="Šaty">Šaty</option>
+      <option value="Sportovní potřeby">Sportovní potřeby</option>
+      <option value="Elektronika">Elektronika</option>
+      <option value="Ostatní">Ostatní</option>
+    </select>
+
+    <label for="description">Popis:</label>
+    <textarea id="description" rows="3" required></textarea>
+
+    <label for="from">Zobrazit od:</label>
+    <input type="date" id="from" required>
+
+    <label for="to">Zobrazit do:</label>
+    <input type="date" id="to" required>
+
+    <button type="submit">Uložit</button>
+  </form>
+
+  <div id="output"></div>
+
+  <script>
+    function generateID() {
+      return 'ID-' + Math.random().toString(36).substr(2, 9);
+    }
+
+    document.getElementById('uploadForm').addEventListener('submit', function(event) {
+      event.preventDefault();
+
+      const file = document.getElementById('file').files[0];
+      const category = document.getElementById('category').value;
+      const description = document.getElementById('description').value;
+      const fromDate = document.getElementById('from').value;
+      const toDate = document.getElementById('to').value;
+      const id = generateID();
+
+      const entry = {
+        id,
+        fileName: file ? file.name : 'žádný soubor',
+        category,
+        description,
+        fromDate,
+        toDate
+      };
+
+      // Uložení do localStorage (prozatím)
+      const allEntries = JSON.parse(localStorage.getItem('adminUploads') || '[]');
+      allEntries.push(entry);
+      localStorage.setItem('adminUploads', JSON.stringify(allEntries));
+
+      // Zobrazit uložený záznam
+      const output = document.getElementById('output');
+      const div = document.createElement('div');
+      div.className = 'entry';
+      div.innerHTML = `
+        <strong>ID:</strong> ${entry.id}<br>
+        <strong>Soubor:</strong> ${entry.fileName}<br>
+        <strong>Kategorie:</strong> ${entry.category}<br>
+        <strong>Popis:</strong> ${entry.description}<br>
+        <strong>Od:</strong> ${entry.fromDate} <strong>Do:</strong> ${entry.toDate}
+      `;
+      output.prepend(div);
+
+      this.reset();
+    });
+  </script>
+</body>
 </html>
