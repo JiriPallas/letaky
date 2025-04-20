@@ -34,13 +34,19 @@
       padding: 1rem;
       border-radius: 6px;
     }
+    .entry-buttons {
+      margin-top: 1rem;
+    }
+    .entry-buttons button {
+      margin-right: 0.5rem;
+    }
   </style>
 </head>
 <body>
   <h1>Nahrát soubor</h1>
   <form id="uploadForm">
-    <label for="file">Obrázek nebo video:</label>
-    <input type="file" id="file" required>
+    <label for="imageUrl">URL obrázku nebo videa:</label>
+    <input type="url" id="imageUrl" placeholder="https://..." required>
 
     <label for="category">Kategorie:</label>
     <select id="category" required>
@@ -72,10 +78,52 @@
       return 'ID-' + Math.random().toString(36).substr(2, 9);
     }
 
+    function renderEntries() {
+      const output = document.getElementById('output');
+      output.innerHTML = '';
+      const allEntries = JSON.parse(localStorage.getItem('adminUploads') || '[]');
+
+      allEntries.reverse().forEach(entry => {
+        const div = document.createElement('div');
+        div.className = 'entry';
+        div.innerHTML = `
+          <strong>ID:</strong> ${entry.id}<br>
+          <img src="${entry.imageUrl}" alt="Obrázek" style="max-width: 100%; margin-top: 0.5rem;"><br>
+          <strong>Kategorie:</strong> ${entry.category}<br>
+          <strong>Popis:</strong> ${entry.description}<br>
+          <strong>Od:</strong> ${entry.fromDate} <strong>Do:</strong> ${entry.toDate}
+        `;
+
+        const btnDiv = document.createElement('div');
+        btnDiv.className = 'entry-buttons';
+
+        const viewBtn = document.createElement('button');
+        viewBtn.textContent = 'Zobrazit';
+        viewBtn.onclick = () => {
+          window.location.href = `detail.html?id=${entry.id}`;
+        };
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = 'Smazat';
+        deleteBtn.onclick = () => {
+          if (confirm('Opravdu chcete tento záznam smazat?')) {
+            const remaining = allEntries.filter(e => e.id !== entry.id);
+            localStorage.setItem('adminUploads', JSON.stringify(remaining));
+            renderEntries();
+          }
+        };
+
+        btnDiv.appendChild(viewBtn);
+        btnDiv.appendChild(deleteBtn);
+        div.appendChild(btnDiv);
+        output.appendChild(div);
+      });
+    }
+
     document.getElementById('uploadForm').addEventListener('submit', function(event) {
       event.preventDefault();
 
-      const file = document.getElementById('file').files[0];
+      const imageUrl = document.getElementById('imageUrl').value;
       const category = document.getElementById('category').value;
       const description = document.getElementById('description').value;
       const fromDate = document.getElementById('from').value;
@@ -84,33 +132,22 @@
 
       const entry = {
         id,
-        fileName: file ? file.name : 'žádný soubor',
+        imageUrl,
         category,
         description,
         fromDate,
         toDate
       };
 
-      // Uložení do localStorage (prozatím)
       const allEntries = JSON.parse(localStorage.getItem('adminUploads') || '[]');
       allEntries.push(entry);
       localStorage.setItem('adminUploads', JSON.stringify(allEntries));
 
-      // Zobrazit uložený záznam
-      const output = document.getElementById('output');
-      const div = document.createElement('div');
-      div.className = 'entry';
-      div.innerHTML = `
-        <strong>ID:</strong> ${entry.id}<br>
-        <strong>Soubor:</strong> ${entry.fileName}<br>
-        <strong>Kategorie:</strong> ${entry.category}<br>
-        <strong>Popis:</strong> ${entry.description}<br>
-        <strong>Od:</strong> ${entry.fromDate} <strong>Do:</strong> ${entry.toDate}
-      `;
-      output.prepend(div);
-
       this.reset();
+      renderEntries();
     });
+
+    window.addEventListener('load', renderEntries);
   </script>
 </body>
 </html>
