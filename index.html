@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kupony</title>
+  <title>Letáky</title>
   <style>
     body { font-family: sans-serif; margin: 0; background: #f4f4f4; }
     header { background: #222; color: white; padding: 1rem; display: flex; align-items: center; }
-    header img { height: 50px; margin-right: 1rem; }
+    header img { height: 50px; margin-right: 1rem; cursor: pointer; }
     header h1 { font-size: 1.5rem; }
     main { max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
     .galerie { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
@@ -22,13 +22,12 @@
 </head>
 <body>
   <header>
-    <img src="logo.png" alt="Logo">
+    <img src="logo.png" alt="Logo" onclick="location.href='index.html'">
     <h1>Letákové kupony</h1>
   </header>
 
   <main>
     <section class="galerie" id="galerie"></section>
-
     <section class="kategorie" id="kategorie">
       <h2>Kategorie</h2>
     </section>
@@ -47,19 +46,13 @@
 
     filtered.slice(-10).reverse().forEach(entry => {
       kategorieSet.add(entry.category);
-
       const div = document.createElement("div");
       div.className = "polozka";
 
-      const detailUrl = `${location.origin}/detail.html?id=${entry.id}`;
+      const detailUrl = `detail.html?id=${entry.id}`;
 
       const img = document.createElement("img");
-      if (entry.fileBlob) {
-        const blob = new Blob([Uint8Array.from(Object.values(entry.fileBlob.data))]);
-        img.src = URL.createObjectURL(blob);
-      } else {
-        img.src = entry.fileName;
-      }
+      img.src = entry.imageUrl || '';
       img.alt = entry.description;
       img.onclick = () => window.location.href = detailUrl;
 
@@ -71,7 +64,7 @@
       qr.className = "qr";
       new QRious({
         element: qr,
-        value: detailUrl,
+        value: `${location.origin}/${detailUrl}`,
         size: 100
       });
 
