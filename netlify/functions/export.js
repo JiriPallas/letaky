@@ -41,16 +41,18 @@ exports.handler = async (event, context) => {
     })
   });
 
-  if (response.ok) {
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ message: "Export OK" })
-    };
-  } else {
-    const error = await response.json();
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: error.message || 'Neznámá chyba' })
-    };
-  }
+if (response.ok) {
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ message: "Export OK" })
+  };
+} else {
+  const error = await response.text(); // Ändra från `.json()` till `.text()`
+  console.error("GitHub API-fel:", error); // logga felet till Netlify-loggen
+  return {
+    statusCode: 500,
+    body: JSON.stringify({ error: error || 'Neznámá chyba' })
+  };
+}
+
 };
