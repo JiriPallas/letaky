@@ -52,7 +52,7 @@
   <div class="seznam" id="seznam">
     <div style="display: flex; justify-content: space-between; align-items: center;">
       <h2>Nahrané položky</h2> 
-      <button onclick="exportData()">Exportovat JSON</button>
+      <button onclick="exportDataToGitHub()">Exportovat JSON</button>
     </div>
   </div>
 
@@ -177,3 +177,45 @@
   </script>
 </body>
 </html>
+async function exportDataToGitHub() {
+  const token = prompt("Zadejte svůj GitHub token:");
+  const repo = "JiriPallas/letaky";
+  const path = "data/data.json";
+  const branch = "main";
+  const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}`;
+
+  const newContent = btoa(unescape(encodeURIComponent(localStorage.getItem('adminUploads'))));
+
+  // Hämta SHA för nuvarande fil (om den finns)
+  const current = await fetch(apiUrl, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  let sha = null;
+  if (current.ok) {
+    const currentData = await current.json();
+    sha = currentData.sha;
+  }
+
+  // Skicka ny fil
+  const response = await fetch(apiUrl, {
+    method: "PUT",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      message: "Automatisk export från adminpanelen",
+      content: newContent,
+      branch: branch,
+      sha: sha
+    })
+  });
+
+  if (response.ok) {
+    alert("Data úspěšně exportována do GitHubu!");
+  } else {
+    const error = await response.json();
+    alert("Chyba při exportu: " + error.message);
+  }
+}
