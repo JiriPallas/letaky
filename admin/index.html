@@ -17,6 +17,7 @@
 </head>
 <body>
   <h1>Admin panel</h1>
+
   <form id="uploadForm">
     <label for="imageUrl">Adresa obrázku / videa (URL)</label>
     <input type="url" id="imageUrl" required placeholder="https://...">
@@ -46,7 +47,6 @@
     <input type="date" id="toDate" required>
 
     <button type="submit">Uložit</button>
-    <button type="button" onclick="exportData()">Exportovat JSON</button>
   </form>
 
   <div class="seznam" id="seznam">
@@ -55,7 +55,6 @@
       <button onclick="exportData()">Exportovat JSON</button>
     </div>
   </div>
-
 
   <script>
     const fromDateInput = document.getElementById('fromDate');
@@ -87,8 +86,16 @@
     const seznam = document.getElementById('seznam');
 
     function loadUploads() {
-      seznam.innerHTML = '<h2>Nahrané položky</h2>';
       const uploads = JSON.parse(localStorage.getItem('adminUploads') || '[]');
+
+      // Behåll rubrik och exportknapp
+      seznam.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h2>Nahrané položky</h2> 
+          <button onclick="exportData()">Exportovat JSON</button>
+        </div>
+      `;
+
       uploads.forEach(entry => {
         const div = document.createElement('div');
         div.className = 'polozka';
