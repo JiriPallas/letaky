@@ -75,13 +75,8 @@
 
     if (entry) {
       const img = document.createElement('img');
-      if (entry.fileBlob) {
-        const blob = new Blob([Uint8Array.from(Object.values(entry.fileBlob.data))]);
-        img.src = URL.createObjectURL(blob);
-      } else {
-        img.src = entry.fileName;
-      }
-      img.alt = entry.description;
+      img.src = entry.imageUrl || entry.fileName || '';
+      img.alt = entry.description || '';
 
       const description = document.createElement('p');
       description.textContent = `Popis: ${entry.description}`;
