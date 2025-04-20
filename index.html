@@ -12,8 +12,8 @@
     main { max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
     .galerie { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
     .polozka { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.1); text-align: center; padding-bottom: 1rem; }
-    .polozka img { width: 100%; height: auto; display: block; }
-    .polozka p { margin: 0.5rem; font-weight: bold; }
+    .polozka img { width: 100%; height: auto; display: block; cursor: pointer; }
+    .polozka p { margin: 0.5rem; font-weight: bold; cursor: pointer; }
     .polozka .qr { margin-top: 0.5rem; }
     .kategorie { margin-top: 2rem; text-align: center; }
     .kategorie a { margin: 0.5rem; text-decoration: none; padding: 0.5rem 1rem; background: #0066cc; color: white; border-radius: 5px; display: inline-block; }
@@ -35,32 +35,43 @@
   </main>
 
   <script>
-    const uploads = JSON.parse(localStorage.getItem('adminUploads') || '[]');
-    const galerie = document.getElementById('galerie');
+    const params = new URLSearchParams(window.location.search);
+    const selectedCategory = params.get("category");
+    const uploads = JSON.parse(localStorage.getItem("adminUploads") || "[]");
+    const galerie = document.getElementById("galerie");
     const kategorieSet = new Set();
 
-    uploads.forEach(entry => kategorieSet.add(entry.category));
+    const filtered = selectedCategory
+      ? uploads.filter(u => u.category === selectedCategory)
+      : uploads;
 
-    uploads.slice(-10).reverse().forEach(entry => {
-      const div = document.createElement('div');
-      div.className = 'polozka';
+    filtered.slice(-10).reverse().forEach(entry => {
+      kategorieSet.add(entry.category);
 
-      const fileURL = entry.fileName.startsWith('blob:')
-        ? entry.fileName
-        : URL.createObjectURL(new Blob([entry.fileBlob] || []));
+      const div = document.createElement("div");
+      div.className = "polozka";
 
-      const img = document.createElement('img');
-      img.src = fileURL;
+      const detailUrl = `${location.origin}/detail.html?id=${entry.id}`;
+
+      const img = document.createElement("img");
+      if (entry.fileBlob) {
+        const blob = new Blob([Uint8Array.from(Object.values(entry.fileBlob.data))]);
+        img.src = URL.createObjectURL(blob);
+      } else {
+        img.src = entry.fileName;
+      }
       img.alt = entry.description;
+      img.onclick = () => window.location.href = detailUrl;
 
-      const desc = document.createElement('p');
+      const desc = document.createElement("p");
       desc.textContent = entry.description;
+      desc.onclick = () => window.location.href = detailUrl;
 
-      const qr = document.createElement('canvas');
-      qr.className = 'qr';
+      const qr = document.createElement("canvas");
+      qr.className = "qr";
       new QRious({
         element: qr,
-        value: `detail.html?id=${entry.id}`,
+        value: detailUrl,
         size: 100
       });
 
@@ -70,10 +81,10 @@
       galerie.appendChild(div);
     });
 
-    const kategorieEl = document.getElementById('kategorie');
+    const kategorieEl = document.getElementById("kategorie");
     kategorieSet.forEach(cat => {
-      const a = document.createElement('a');
-      a.href = `${cat.toLowerCase().replace(/ /g, '-')}.html`;
+      const a = document.createElement("a");
+      a.href = `index.html?category=${encodeURIComponent(cat)}`;
       a.textContent = cat;
       kategorieEl.appendChild(a);
     });
