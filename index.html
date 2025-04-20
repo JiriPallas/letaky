@@ -11,13 +11,14 @@
     header h1 { font-size: 1.5rem; }
     main { max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
     .galerie { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
-    .polozka { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.1); text-align: center; }
+    .polozka { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.1); text-align: center; padding-bottom: 1rem; }
     .polozka img { width: 100%; height: auto; display: block; }
     .polozka p { margin: 0.5rem; font-weight: bold; }
-    .polozka a { display: block; padding: 0.5rem; color: #0066cc; text-decoration: none; font-size: 0.9rem; }
+    .polozka .qr { margin-top: 0.5rem; }
     .kategorie { margin-top: 2rem; text-align: center; }
     .kategorie a { margin: 0.5rem; text-decoration: none; padding: 0.5rem 1rem; background: #0066cc; color: white; border-radius: 5px; display: inline-block; }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 </head>
 <body>
   <header>
@@ -26,23 +27,53 @@
   </header>
 
   <main>
-    <section class="galerie">
-      <!-- 10 fotografií s textem a odkazem -->
-      <div class="polozka">
-        <img src="obrazky/kupon1.jpg" alt="Kupon 1">
-        <p>Sleva na pečivo</p>
-        <a href="kupon1.html">Zobrazit více</a>
-      </div>
-      <!-- Opakuj pro kupon2 až kupon10 -->
-    </section>
+    <section class="galerie" id="galerie"></section>
 
-    <section class="kategorie">
+    <section class="kategorie" id="kategorie">
       <h2>Kategorie</h2>
-      <a href="potraviny.html">Potraviny</a>
-      <a href="odevy.html">Oděvy</a>
-      <a href="elektronika.html">Elektronika</a>
-      <a href="ostatni.html">Ostatní</a>
+      <!-- Kategorie se generují dynamicky -->
     </section>
   </main>
+
+  <script>
+    const uploads = JSON.parse(localStorage.getItem('adminUploads') || '[]');
+    const galerie = document.getElementById('galerie');
+    const kategorieSet = new Set();
+
+    uploads.slice(-10).reverse().forEach(entry => {
+      kategorieSet.add(entry.category);
+
+      const div = document.createElement('div');
+      div.className = 'polozka';
+
+      const img = document.createElement('img');
+      img.src = 'obrazky/' + entry.fileName;
+      img.alt = entry.description;
+
+      const desc = document.createElement('p');
+      desc.textContent = entry.description;
+
+      const qr = document.createElement('canvas');
+      qr.className = 'qr';
+      const qrCode = new QRious({
+        element: qr,
+        value: `detail.html?id=${entry.id}`,
+        size: 100
+      });
+
+      div.appendChild(img);
+      div.appendChild(desc);
+      div.appendChild(qr);
+      galerie.appendChild(div);
+    });
+
+    const kategorieEl = document.getElementById('kategorie');
+    kategorieSet.forEach(cat => {
+      const a = document.createElement('a');
+      a.href = `${cat.toLowerCase().replace(/ /g, '-')}.html`;
+      a.textContent = cat;
+      kategorieEl.appendChild(a);
+    });
+  </script>
 </body>
 </html>
