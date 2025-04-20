@@ -31,7 +31,6 @@
 
     <section class="kategorie" id="kategorie">
       <h2>Kategorie</h2>
-      <!-- Kategorie se generují dynamicky -->
     </section>
   </main>
 
@@ -40,14 +39,18 @@
     const galerie = document.getElementById('galerie');
     const kategorieSet = new Set();
 
-    uploads.slice(-10).reverse().forEach(entry => {
-      kategorieSet.add(entry.category);
+    uploads.forEach(entry => kategorieSet.add(entry.category));
 
+    uploads.slice(-10).reverse().forEach(entry => {
       const div = document.createElement('div');
       div.className = 'polozka';
 
+      const fileURL = entry.fileName.startsWith('blob:')
+        ? entry.fileName
+        : URL.createObjectURL(new Blob([entry.fileBlob] || []));
+
       const img = document.createElement('img');
-      img.src = 'obrazky/' + entry.fileName;
+      img.src = fileURL;
       img.alt = entry.description;
 
       const desc = document.createElement('p');
@@ -55,7 +58,7 @@
 
       const qr = document.createElement('canvas');
       qr.className = 'qr';
-      const qrCode = new QRious({
+      new QRious({
         element: qr,
         value: `detail.html?id=${entry.id}`,
         size: 100
