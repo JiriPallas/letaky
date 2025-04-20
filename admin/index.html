@@ -50,8 +50,12 @@
   </form>
 
   <div class="seznam" id="seznam">
-    <h2>Nahrané položky</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h2>Nahrané položky</h2>
+      <button onclick="exportData()">Exportovat JSON</button>
+    </div>
   </div>
+
 
   <script>
     const fromDateInput = document.getElementById('fromDate');
