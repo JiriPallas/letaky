@@ -2,7 +2,6 @@
 <html lang="cs">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Detail kuponu</title>
   <style>
     body {
@@ -52,7 +51,11 @@
       color: white;
       border-radius: 5px;
     }
+    canvas.qr {
+      margin-top: 1rem;
+    }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 </head>
 <body>
   <header>
@@ -87,10 +90,19 @@
       const date = document.createElement('p');
       date.textContent = `Zobrazit od ${entry.fromDate} do ${entry.toDate}`;
 
+      const qrCanvas = document.createElement('canvas');
+      qrCanvas.className = 'qr';
+      new QRious({
+        element: qrCanvas,
+        value: window.location.href,
+        size: 140
+      });
+
       container.appendChild(img);
       container.appendChild(description);
       container.appendChild(category);
       container.appendChild(date);
+      container.appendChild(qrCanvas);
     } else {
       container.textContent = 'Záznam nenalezen.';
     }

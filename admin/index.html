@@ -41,6 +41,7 @@
       margin-right: 0.5rem;
     }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 </head>
 <body>
   <h1>Nahrát soubor</h1>
@@ -62,11 +63,14 @@
     <label for="description">Popis:</label>
     <textarea id="description" rows="3" required></textarea>
 
+    <label for="days">Počet dní zobrazení:</label>
+    <input type="number" id="days" value="7" min="1" required>
+
     <label for="from">Zobrazit od:</label>
     <input type="date" id="from" required>
 
     <label for="to">Zobrazit do:</label>
-    <input type="date" id="to" required>
+    <input type="date" id="to" required readonly>
 
     <button type="submit">Uložit</button>
   </form>
@@ -77,6 +81,24 @@
     function generateID() {
       return 'ID-' + Math.random().toString(36).substr(2, 9);
     }
+
+    function todayAsInputValue() {
+      return new Date().toISOString().split('T')[0];
+    }
+
+    function updateToDate() {
+      const from = new Date(document.getElementById('from').value);
+      const days = parseInt(document.getElementById('days').value);
+      const to = new Date(from);
+      to.setDate(from.getDate() + days);
+      document.getElementById('to').value = to.toISOString().split('T')[0];
+    }
+
+    document.getElementById('from').value = todayAsInputValue();
+    updateToDate();
+
+    document.getElementById('from').addEventListener('change', updateToDate);
+    document.getElementById('days').addEventListener('input', updateToDate);
 
     function renderEntries() {
       const output = document.getElementById('output');
@@ -91,8 +113,16 @@
           <img src="${entry.imageUrl}" alt="Obrázek" style="max-width: 100%; margin-top: 0.5rem;"><br>
           <strong>Kategorie:</strong> ${entry.category}<br>
           <strong>Popis:</strong> ${entry.description}<br>
-          <strong>Od:</strong> ${entry.fromDate} <strong>Do:</strong> ${entry.toDate}
+          <strong>Od:</strong> ${entry.fromDate} <strong>Do:</strong> ${entry.toDate}<br>
         `;
+
+        const qrCanvas = document.createElement('canvas');
+        new QRious({
+          element: qrCanvas,
+          value: `detail.html?id=${entry.id}`,
+          size: 100
+        });
+        div.appendChild(qrCanvas);
 
         const btnDiv = document.createElement('div');
         btnDiv.className = 'entry-buttons';
@@ -144,6 +174,8 @@
       localStorage.setItem('adminUploads', JSON.stringify(allEntries));
 
       this.reset();
+      document.getElementById('from').value = todayAsInputValue();
+      updateToDate();
       renderEntries();
     });
 
