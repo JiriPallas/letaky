@@ -1,202 +1,168 @@
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin panel</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 600px;
-      margin: 2rem auto;
-      padding: 1rem;
-      background: #f2f2f2;
-      border-radius: 8px;
-    }
-    h1 { text-align: center; }
-    label { display: block; margin-top: 1rem; }
-    input, select, textarea {
-      width: 100%;
-      padding: 0.5rem;
-      margin-top: 0.25rem;
-    }
-    button {
-      margin-top: 1.5rem;
-      padding: 0.7rem;
-      background: #0077cc;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .entry {
-      background: white;
-      margin-top: 2rem;
-      padding: 1rem;
-      border-radius: 6px;
-    }
-    .entry-buttons {
-      margin-top: 1rem;
-    }
-    .entry-buttons button {
-      margin-right: 0.5rem;
-    }
+    body { font-family: sans-serif; padding: 2rem; background: #f7f7f7; }
+    form, .seznam { max-width: 700px; margin: auto; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    input, textarea, select { width: 100%; margin-bottom: 1rem; padding: 0.5rem; font-size: 1rem; }
+    button { padding: 0.5rem 1rem; font-size: 1rem; margin-right: 0.5rem; }
+    .polozka { border: 1px solid #ddd; margin: 1rem 0; padding: 1rem; border-radius: 5px; background: #fafafa; }
+    img { max-width: 100%; height: auto; margin-top: 0.5rem; border-radius: 4px; }
+    .qr { margin-top: 0.5rem; }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 </head>
 <body>
-  <h1>Nahrát soubor</h1>
+  <h1>Admin panel</h1>
   <form id="uploadForm">
-    <label for="imageUrl">URL obrázku nebo videa:</label>
-    <input type="url" id="imageUrl" placeholder="https://..." required>
+    <label for="imageUrl">Adresa obrázku / videa (URL)</label>
+    <input type="url" id="imageUrl" required placeholder="https://...">
 
-    <label for="category">Kategorie:</label>
+    <label for="category">Kategorie</label>
     <select id="category" required>
-      <option value="Potraviny">Potraviny</option>
-      <option value="Motorová vozidla">Motorová vozidla</option>
-      <option value="Bydlení">Bydlení</option>
-      <option value="Šaty">Šaty</option>
-      <option value="Sportovní potřeby">Sportovní potřeby</option>
-      <option value="Elektronika">Elektronika</option>
-      <option value="Ostatní">Ostatní</option>
+      <option value="">-- Vyberte --</option>
+      <option>Potraviny</option>
+      <option>Motorová vozidla</option>
+      <option>Bydlení</option>
+      <option>Šaty</option>
+      <option>Sportovní potřeby</option>
+      <option>Elektronika</option>
+      <option>Ostatní</option>
     </select>
 
-    <label for="description">Popis:</label>
-    <textarea id="description" rows="3" required></textarea>
+    <label for="description">Popis</label>
+    <textarea id="description" required></textarea>
 
-    <label for="days">Počet dní zobrazení:</label>
-    <input type="number" id="days" value="7" min="1" required>
+    <label for="fromDate">Zobrazit od</label>
+    <input type="date" id="fromDate" required>
 
-    <label for="from">Zobrazit od:</label>
-    <input type="date" id="from" required>
+    <label for="duration">Počet dní zobrazení</label>
+    <input type="number" id="duration" value="7" min="1" required>
 
-    <label for="to">Zobrazit do:</label>
-    <input type="date" id="to" required readonly>
+    <label for="toDate">Zobrazit do</label>
+    <input type="date" id="toDate" required>
 
     <button type="submit">Uložit</button>
+    <button type="button" onclick="exportData()">Exportovat JSON</button>
   </form>
 
-  <div id="output"></div>
+  <div class="seznam" id="seznam">
+    <h2>Nahrané položky</h2>
+  </div>
 
   <script>
-    function generateID() {
-      return 'ID-' + Math.random().toString(36).substr(2, 9);
-    }
+    const fromDateInput = document.getElementById('fromDate');
+    const toDateInput = document.getElementById('toDate');
+    const durationInput = document.getElementById('duration');
 
-    function todayAsInputValue() {
-      return new Date().toISOString().split('T')[0];
+    function setDefaultDates() {
+      const today = new Date().toISOString().split('T')[0];
+      fromDateInput.value = today;
+      updateToDate();
     }
 
     function updateToDate() {
-      const from = new Date(document.getElementById('from').value);
-      const days = parseInt(document.getElementById('days').value);
-      const to = new Date(from);
-      to.setDate(from.getDate() + days);
-      document.getElementById('to').value = to.toISOString().split('T')[0];
+      const from = new Date(fromDateInput.value);
+      const days = parseInt(durationInput.value);
+      if (!isNaN(from.getTime()) && days > 0) {
+        const to = new Date(from);
+        to.setDate(to.getDate() + days);
+        toDateInput.value = to.toISOString().split('T')[0];
+      }
     }
 
-    document.getElementById('from').value = todayAsInputValue();
-    updateToDate();
+    fromDateInput.addEventListener('change', updateToDate);
+    durationInput.addEventListener('input', updateToDate);
 
-    document.getElementById('from').addEventListener('change', updateToDate);
-    document.getElementById('days').addEventListener('input', updateToDate);
+    setDefaultDates();
 
-    function renderEntries() {
-      const output = document.getElementById('output');
-      output.innerHTML = '';
-      const allEntries = JSON.parse(localStorage.getItem('adminUploads') || '[]');
+    const form = document.getElementById('uploadForm');
+    const seznam = document.getElementById('seznam');
 
-      allEntries.reverse().forEach(entry => {
+    function loadUploads() {
+      seznam.innerHTML = '<h2>Nahrané položky</h2>';
+      const uploads = JSON.parse(localStorage.getItem('adminUploads') || '[]');
+      uploads.forEach(entry => {
         const div = document.createElement('div');
-        div.className = 'entry';
-        div.innerHTML = `
-          <strong>ID:</strong> ${entry.id}<br>
-          <img src="${entry.imageUrl}" alt="Obrázek" style="max-width: 100%; margin-top: 0.5rem;"><br>
-          <strong>Kategorie:</strong> ${entry.category}<br>
-          <strong>Popis:</strong> ${entry.description}<br>
-          <strong>Od:</strong> ${entry.fromDate} <strong>Do:</strong> ${entry.toDate}<br>
-        `;
+        div.className = 'polozka';
 
-        const qrCanvas = document.createElement('canvas');
-        new QRious({
-          element: qrCanvas,
-          value: `detail.html?id=${entry.id}`,
-          size: 100
-        });
-        div.appendChild(qrCanvas);
+        const img = document.createElement('img');
+        img.src = entry.imageUrl;
+        img.alt = entry.description;
 
-        const btnDiv = document.createElement('div');
-        btnDiv.className = 'entry-buttons';
+        const text = document.createElement('p');
+        text.textContent = `${entry.category}: ${entry.description}`;
 
-        const viewBtn = document.createElement('button');
-        viewBtn.textContent = 'Zobrazit';
-        viewBtn.onclick = () => {
-          window.location.href = `detail.html?id=${entry.id}`;
+        const zobrazit = document.createElement('button');
+        zobrazit.textContent = 'Zobrazit';
+        zobrazit.onclick = () => {
+          window.open(`../detail.html?id=${entry.id}`, '_blank');
         };
 
-        const deleteBtn = document.createElement('button');
-        deleteBtn.textContent = 'Smazat';
-        deleteBtn.onclick = () => {
+        const smazat = document.createElement('button');
+        smazat.textContent = 'Smazat';
+        smazat.onclick = () => {
           if (confirm('Opravdu chcete tento záznam smazat?')) {
-            const remaining = allEntries.filter(e => e.id !== entry.id);
-            localStorage.setItem('adminUploads', JSON.stringify(remaining));
-            renderEntries();
+            const updated = uploads.filter(e => e.id !== entry.id);
+            localStorage.setItem('adminUploads', JSON.stringify(updated));
+            loadUploads();
           }
         };
-	
 
-<button onclick="exportData()">Exportovat JSON</button>
+        const qr = document.createElement('canvas');
+        qr.className = 'qr';
+        new QRious({
+          element: qr,
+          value: `${location.origin.replace(/\/admin$/, '')}/detail.html?id=${entry.id}`,
+          size: 100
+        });
 
-<script>
-function exportData() {
-  const data = localStorage.getItem('adminUploads');
-  const blob = new Blob([data], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'data.json';
-  a.click();
-  URL.revokeObjectURL(url);
-}
-</script>
+        div.appendChild(img);
+        div.appendChild(text);
+        div.appendChild(zobrazit);
+        div.appendChild(smazat);
+        div.appendChild(qr);
 
-
-        btnDiv.appendChild(viewBtn);
-        btnDiv.appendChild(deleteBtn);
-        div.appendChild(btnDiv);
-        output.appendChild(div);
+        seznam.appendChild(div);
       });
     }
 
-    document.getElementById('uploadForm').addEventListener('submit', function(event) {
-      event.preventDefault();
-
-      const imageUrl = document.getElementById('imageUrl').value;
-      const category = document.getElementById('category').value;
-      const description = document.getElementById('description').value;
-      const fromDate = document.getElementById('from').value;
-      const toDate = document.getElementById('to').value;
-      const id = generateID();
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const uploads = JSON.parse(localStorage.getItem('adminUploads') || '[]');
+      const id = 'ID-' + Math.random().toString(36).substr(2, 9);
 
       const entry = {
         id,
-        imageUrl,
-        category,
-        description,
-        fromDate,
-        toDate
+        imageUrl: document.getElementById('imageUrl').value,
+        category: document.getElementById('category').value,
+        description: document.getElementById('description').value,
+        fromDate: document.getElementById('fromDate').value,
+        toDate: document.getElementById('toDate').value
       };
 
-      const allEntries = JSON.parse(localStorage.getItem('adminUploads') || '[]');
-      allEntries.push(entry);
-      localStorage.setItem('adminUploads', JSON.stringify(allEntries));
-
-      this.reset();
-      document.getElementById('from').value = todayAsInputValue();
-      updateToDate();
-      renderEntries();
+      uploads.push(entry);
+      localStorage.setItem('adminUploads', JSON.stringify(uploads));
+      form.reset();
+      setDefaultDates();
+      loadUploads();
     });
 
-    window.addEventListener('load', renderEntries);
+    function exportData() {
+      const data = localStorage.getItem('adminUploads');
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'data.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    loadUploads();
   </script>
 </body>
 </html>
