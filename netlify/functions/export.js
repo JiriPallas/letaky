@@ -1,7 +1,13 @@
 // netlify/functions/export.js
-export default async (req, res) => {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Použijte POST' });
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
+
+
+exports.handler = async (event, context) => {
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      body: JSON.stringify({ error: 'Použijte POST' })
+    };
   }
 
   const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
@@ -9,7 +15,7 @@ export default async (req, res) => {
   const path = "data/data.json";
   const branch = "main";
   const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}`;
-  const data = req.body;
+  const data = JSON.parse(event.body);
 
   const newContent = Buffer.from(JSON.stringify(data)).toString('base64');
 
@@ -19,11 +25,11 @@ export default async (req, res) => {
 
   let sha = null;
   if (current.ok) {
-    const json = await current.json();
-    sha = json.sha;
+    const currentData = await current.json();
+    sha = currentData.sha;
   }
 
-  const upload = await fetch(apiUrl, {
+  const response = await fetch(apiUrl, {
     method: "PUT",
     headers: {
       "Authorization": `Bearer ${GITHUB_TOKEN}`,
@@ -37,10 +43,16 @@ export default async (req, res) => {
     })
   });
 
-  if (upload.ok) {
-    return res.status(200).json({ message: "Export OK" });
+  if (response.ok) {
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ message: "Export OK" })
+    };
   } else {
-    const error = await upload.json();
-    return res.status(500).json({ error: error.message });
+    const error = await response.json();
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: error.message || 'Neznámá chyba' })
+    };
   }
 };
