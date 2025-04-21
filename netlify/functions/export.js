@@ -1,35 +1,59 @@
-async function exportDataToGitHub() {
-  console.log("🚀 exportDataToGitHub() körs");
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
-  const data = JSON.parse(localStorage.getItem('adminUploads') || '[]');
-  console.log("📦 Data som skickas:", data);
+exports.handler = async (event, context) => {
+  console.log("▶️ Kör Netlify function: export");
 
-  try {
-    const res = await fetch('/.netlify/functions/export', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-
-    const resultText = await res.text();
-    console.log("📬 Svar från export-funktion:", resultText);
-
-    let result;
-    try {
-      result = JSON.parse(resultText);
-    } catch (e) {
-      console.warn("Kunde inte tolka svaret som JSON:", resultText);
-      alert("Chyba při exportu (format): " + resultText);
-      return;
-    }
-
-    if (res.ok) {
-      alert("✅ Data úspěšně exportována do GitHubu přes Netlify!");
-    } else {
-      alert("❌ Chyba při exportu : " + (result.error || "Neznámá chyba"));
-    }
-  } catch (error) {
-    console.error("❗ Fetch-fel:", error);
-    alert("❗ Došlo k chybě při komunikaci se serverem");
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      body: JSON.stringify({ error: 'Použijte POST' })
+    };
   }
-}
+
+  const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+  const repo = "JiriPallas/letaky";
+  const path = "data/data.json";
+  const branch = "main";
+  const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}`;
+  const data = JSON.parse(event.body);
+
+  const newContent = Buffer.from(JSON.stringify(data)).toString('base64');
+
+  const current = await fetch(apiUrl, {
+    headers: { Authorization: `Bearer ${GITHUB_TOKEN}` }
+  });
+
+  let sha = null;
+  if (current.ok) {
+    const currentData = await current.json();
+    sha = currentData.sha;
+  }
+
+  const response = await fetch(apiUrl, {
+    method: "PUT",
+    headers: {
+      "Authorization": `Bearer ${GITHUB_TOKEN}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      message: "Export via Netlify Function",
+      content: newContent,
+      branch,
+      sha
+    })
+  });
+
+  if (response.ok) {
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ message: "Export OK" })
+    };
+  } else {
+    const error = await response.text();
+    console.error("GitHub API-fel:", error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: error || 'Neznámá chyba' })
+    };
+  }
+};
