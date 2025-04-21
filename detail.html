@@ -1,59 +1,21 @@
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Detail kuponu</title>
   <style>
-    body {
-      font-family: sans-serif;
-      max-width: 600px;
-      margin: 2rem auto;
-      padding: 1rem;
-      background: #f9f9f9;
-    }
-    header {
-      display: flex;
-      align-items: center;
-      margin-bottom: 2rem;
-    }
-    header img {
-      height: 50px;
-      margin-right: 1rem;
-      cursor: pointer;
-    }
-    header h1 {
-      font-size: 1.5rem;
-      margin: 0;
-    }
-    .kupon {
-      background: white;
-      padding: 1rem;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      text-align: center;
-    }
-    img {
-      max-width: 100%;
-      height: auto;
-      border-radius: 6px;
-    }
-    p {
-      margin: 1rem 0 0.5rem;
-    }
-    .back {
-      margin-top: 2rem;
-      text-align: center;
-    }
-    .back a {
-      text-decoration: none;
-      padding: 0.5rem 1rem;
-      background: #0077cc;
-      color: white;
-      border-radius: 5px;
-    }
-    canvas.qr {
-      margin-top: 1rem;
-    }
+    body { font-family: sans-serif; max-width: 600px; margin: 2rem auto; padding: 1rem; background: #f9f9f9; }
+    header { display: flex; align-items: center; margin-bottom: 2rem; }
+    header img { height: 50px; margin-right: 1rem; cursor: pointer; }
+    header h1 { font-size: 1.5rem; margin: 0; }
+    .kupon { background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); text-align: center; }
+    img { max-width: 100%; height: auto; border-radius: 6px; }
+    p { margin: 1rem 0 0.5rem; }
+    .back { margin-top: 2rem; text-align: center; }
+    .back a { text-decoration: none; padding: 0.5rem 1rem; background: #0077cc; color: white; border-radius: 5px; }
+    canvas.qr { margin-top: 1rem; }
+    .qr-instrukce { font-size: 0.85rem; color: #444; margin-top: 0.5rem; }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 </head>
@@ -64,6 +26,7 @@
   </header>
 
   <div class="kupon" id="kupon"></div>
+
   <div class="back">
     <a href="index.html">Hlavní stránka</a>
   </div>
@@ -73,12 +36,11 @@
     const id = params.get('id');
     const uploads = JSON.parse(localStorage.getItem('adminUploads') || '[]');
     const entry = uploads.find(item => item.id === id);
-
     const container = document.getElementById('kupon');
 
     if (entry) {
       const img = document.createElement('img');
-      img.src = entry.imageUrl || entry.fileName || '';
+      img.src = entry.imageUrl || '';
       img.alt = entry.description || '';
 
       const description = document.createElement('p');
@@ -92,17 +54,24 @@
 
       const qrCanvas = document.createElement('canvas');
       qrCanvas.className = 'qr';
+      const qrURL = window.location.href;
+
       new QRious({
         element: qrCanvas,
-        value: window.location.href,
+        value: qrURL,
         size: 140
       });
+
+      const qrText = document.createElement('div');
+      qrText.className = 'qr-instrukce';
+      qrText.innerHTML = `Naskenujte pro zobrazení nebo otevřete ručně:<br><strong>${qrURL}</strong>`;
 
       container.appendChild(img);
       container.appendChild(description);
       container.appendChild(category);
       container.appendChild(date);
       container.appendChild(qrCanvas);
+      container.appendChild(qrText);
     } else {
       container.textContent = 'Záznam nenalezen.';
     }
