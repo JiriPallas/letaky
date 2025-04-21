@@ -4,10 +4,10 @@ export default async function handler(event, context) {
   console.log("▶️ Kör Netlify function: export");
 
   if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      body: JSON.stringify({ error: 'Použijte POST' })
-    };
+    return new Response(JSON.stringify({ error: 'Použijte POST' }), {
+      status: 405,
+      headers: { "Content-Type": "application/json" }
+    });
   }
 
   const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
@@ -44,16 +44,16 @@ export default async function handler(event, context) {
   });
 
   if (response.ok) {
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ message: "Export OK" })
-    };
+    return new Response(JSON.stringify({ message: "Export OK" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
+    });
   } else {
     const error = await response.text();
     console.error("GitHub API-fel:", error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: error || 'Neznámá chyba' })
-    };
+    return new Response(JSON.stringify({ error: error || 'Neznámá chyba' }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
   }
 }
