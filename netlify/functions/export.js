@@ -56,4 +56,4 @@ export default async function handler(event, context) {
       body: JSON.stringify({ error: error || 'Neznámá chyba' })
     };
   }
-};
+}
