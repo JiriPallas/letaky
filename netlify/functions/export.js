@@ -26,7 +26,7 @@ async function exportDataToGitHub() {
     if (res.ok) {
       alert("✅ Data úspěšně exportována do GitHubu přes Netlify!");
     } else {
-      alert("❌ Chyba při exportu: " + (result.error || "Neznámá chyba"));
+      alert("❌ Chyba při exportu : " + (result.error || "Neznámá chyba"));
     }
   } catch (error) {
     console.error("❗ Fetch-fel:", error);
