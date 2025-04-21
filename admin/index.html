@@ -17,14 +17,141 @@
 <body>
   <h1>Admin panel</h1>
 
-  <button onclick="exportDataToGitHub()">Exportovat JSON</button>
+  <form id="uploadForm">
+    <label for="imageUrl">Adresa obrázku / videa (URL)</label>
+    <input type="url" id="imageUrl" required placeholder="https://...">
 
+    <label for="category">Kategorie</label>
+    <select id="category" required>
+      <option value="">-- Vyberte --</option>
+      <option>Potraviny</option>
+      <option>Motorová vozidla</option>
+      <option>Bydlení</option>
+      <option>Šaty</option>
+      <option>Sportovní potřeby</option>
+      <option>Elektronika</option>
+      <option>Ostatní</option>
+    </select>
+
+    <label for="description">Popis</label>
+    <textarea id="description" required></textarea>
+
+    <label for="fromDate">Zobrazit od</label>
+    <input type="date" id="fromDate" required>
+
+    <label for="duration">Počet dní zobrazení</label>
+    <input type="number" id="duration" value="7" min="1" required>
+
+    <label for="toDate">Zobrazit do</label>
+    <input type="date" id="toDate" required>
+
+    <button type="submit">Uložit</button>
+    <button type="button" onclick="exportDataToGitHub()">Exportovat JSON</button>
+  </form>
+
+  <div class="seznam" id="seznam"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <script>
-    async function exportDataToGitHub() {
-      console.log("🚀 exportDataToGitHub() körs");
+    const fromDateInput = document.getElementById('fromDate');
+    const toDateInput = document.getElementById('toDate');
+    const durationInput = document.getElementById('duration');
 
+    function setDefaultDates() {
+      const today = new Date().toISOString().split('T')[0];
+      fromDateInput.value = today;
+      updateToDate();
+    }
+
+    function updateToDate() {
+      const from = new Date(fromDateInput.value);
+      const days = parseInt(durationInput.value);
+      if (!isNaN(from.getTime()) && days > 0) {
+        const to = new Date(from);
+        to.setDate(to.getDate() + days);
+        toDateInput.value = to.toISOString().split('T')[0];
+      }
+    }
+
+    fromDateInput.addEventListener('change', updateToDate);
+    durationInput.addEventListener('input', updateToDate);
+    setDefaultDates();
+
+    const form = document.getElementById('uploadForm');
+    const seznam = document.getElementById('seznam');
+
+    function renderUploads(uploads) {
+      seznam.innerHTML = '<h2>Nahrané položky</h2>';
+      uploads.forEach(entry => {
+        const div = document.createElement('div');
+        div.className = 'polozka';
+
+        const img = document.createElement('img');
+        img.src = entry.imageUrl;
+        img.alt = entry.description;
+
+        const text = document.createElement('p');
+        text.textContent = `${entry.category}: ${entry.description}`;
+
+        const zobrazit = document.createElement('button');
+        zobrazit.textContent = 'Zobrazit';
+        zobrazit.onclick = () => {
+          window.open(`../detail.html?id=${entry.id}`, '_blank');
+        };
+
+        const qr = document.createElement('canvas');
+        qr.className = 'qr';
+        new QRious({
+          element: qr,
+          value: `${location.origin.replace(/\/admin$/, '')}/detail.html?id=${entry.id}`,
+          size: 100
+        });
+
+        div.appendChild(img);
+        div.appendChild(text);
+        div.appendChild(zobrazit);
+        div.appendChild(qr);
+
+        seznam.appendChild(div);
+      });
+    }
+
+    async function loadUploads() {
+      try {
+        const res = await fetch('/data/data.json');
+        const data = await res.json();
+        renderUploads(data);
+        localStorage.setItem('adminUploads', JSON.stringify(data));
+      } catch (err) {
+        console.warn("Nelze načíst data.json, načítám z localStorage.");
+        const uploads = JSON.parse(localStorage.getItem('adminUploads') || '[]');
+        renderUploads(uploads);
+      }
+    }
+
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const uploads = JSON.parse(localStorage.getItem('adminUploads') || '[]');
+      const id = 'ID-' + Math.random().toString(36).substr(2, 9);
+
+      const entry = {
+        id,
+        imageUrl: document.getElementById('imageUrl').value,
+        category: document.getElementById('category').value,
+        description: document.getElementById('description').value,
+        fromDate: document.getElementById('fromDate').value,
+        toDate: document.getElementById('toDate').value
+      };
+
+      uploads.push(entry);
+      localStorage.setItem('adminUploads', JSON.stringify(uploads));
+      form.reset();
+      setDefaultDates();
+      renderUploads(uploads);
+    });
+
+    async function exportDataToGitHub() {
       const data = JSON.parse(localStorage.getItem('adminUploads') || '[]');
-      console.log("📦 Data som skickas:", data);
 
       try {
         const res = await fetch('/.netlify/functions/export', {
@@ -33,27 +160,19 @@
           body: JSON.stringify(data)
         });
 
-        const resultText = await res.text();
-        console.log("📬 Svar från export-funktion:", resultText);
-
-        let result;
-        try {
-          result = JSON.parse(resultText);
-        } catch (e) {
-          alert("❗ Chybný formát odpovědi: " + resultText);
-          return;
-        }
-
+        const result = await res.json();
         if (res.ok) {
           alert("✅ Export úspěšný!");
         } else {
-          alert("❌ Chyba při exportu: " + (result.error || "Neznámá chyba"));
+          alert("❌ Chyba při exportu: " + result.error);
         }
       } catch (err) {
-        console.error("❗ Fetch error:", err);
-        alert("❗ Nelze se připojit k funkci exportu.");
+        alert("❌ Chyba při připojení k funkci exportu.");
+        console.error(err);
       }
     }
+
+    loadUploads();
   </script>
 </body>
 </html>
