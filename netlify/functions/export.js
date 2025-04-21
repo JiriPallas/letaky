@@ -1,6 +1,6 @@
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
-exports.handler = async (event, context) => {
+export default async function handler(event, context) {
   console.log("▶️ Kör Netlify function: export");
 
   if (event.httpMethod !== 'POST') {
