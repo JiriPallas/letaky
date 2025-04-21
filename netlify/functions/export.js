@@ -1,9 +1,9 @@
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
-export default async function handler(event, context) {
+export default async function handler(request) {
   console.log("▶️ Kör Netlify function: export");
 
-  if (event.httpMethod !== 'POST') {
+  if (request.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Použijte POST' }), {
       status: 405,
       headers: { "Content-Type": "application/json" }
@@ -15,7 +15,7 @@ export default async function handler(event, context) {
   const path = "data/data.json";
   const branch = "main";
   const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}`;
-  const data = JSON.parse(event.body);
+  const data = await request.json();
 
   const newContent = Buffer.from(JSON.stringify(data)).toString('base64');
 
