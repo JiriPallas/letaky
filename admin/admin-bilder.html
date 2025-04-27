@@ -7,6 +7,8 @@
   <style>
     body { font-family: sans-serif; padding: 2rem; background: #f4f4f4; }
     h1 { text-align: center; margin-bottom: 2rem; }
+    .top-bar { text-align: center; margin-bottom: 2rem; }
+    .top-bar button { padding: 0.5rem 1rem; font-size: 1rem; background: #0077cc; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 0.5rem; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
     .card {
       background: white;
@@ -19,134 +21,161 @@
       align-items: center;
       font-size: 0.9rem;
     }
-    img {
-      max-width: 100%;
-      height: 120px;
-      object-fit: cover;
-      margin-bottom: 0.5rem;
-      border-radius: 4px;
-    }
-    button {
-      margin: 0.3rem;
-      padding: 0.5rem;
-      font-size: 0.85rem;
-      cursor: pointer;
-      width: 90%;
-    }
-    canvas.qr {
-      margin-top: 0.5rem;
-    }
-    .top-bar {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
-    .top-bar button {
-      padding: 0.5rem 1rem;
-      font-size: 1rem;
-      background: #0077cc;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
+    img { max-width: 100%; height: 120px; object-fit: cover; margin-bottom: 0.5rem; border-radius: 4px; }
+    button { margin: 0.3rem; padding: 0.5rem; font-size: 0.85rem; cursor: pointer; width: 90%; }
+    canvas.qr { margin-top: 0.5rem; }
+    .info { font-size: 0.8rem; margin: 0.5rem 0; }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 </head>
 <body>
 
-  <div class="top-bar">
-    <button onclick="window.location.href='index.html'">Zpět do Admin</button>
-  </div>
+<div class="top-bar">
+  <button onclick="window.location.href='index.html'">Zpět do Admin</button>
+  <button onclick="exportDataToGitHub()">Exportovat JSON</button>
+</div>
 
-  <h1>Aktivní položky</h1>
+<h1>Aktivní položky</h1>
 
-  <div class="grid" id="gallery"></div>
+<div class="grid" id="gallery"></div>
 
-  <script>
-    async function loadData() {
-      try {
-        const res = await fetch('../data/data.json');
-        const uploads = await res.json();
-        const activeUploads = uploads.filter(item => item.archived !== true);
+<script>
+async function loadData() {
+  try {
+    const res = await fetch('../data/data.json');
+    const uploads = await res.json();
+    const activeUploads = uploads.filter(item => item.archived !== true);
 
-        const gallery = document.getElementById('gallery');
-        gallery.innerHTML = '';
+    const gallery = document.getElementById('gallery');
+    gallery.innerHTML = '';
 
-        activeUploads.forEach(item => {
-          const card = document.createElement('div');
-          card.className = 'card';
+    activeUploads.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'card';
 
-          const img = document.createElement('img');
-          img.src = item.imageUrl;
-          img.alt = item.description;
+      const img = document.createElement('img');
+      img.src = item.imageUrl;
+      img.alt = item.description;
 
-          const desc = document.createElement('div');
-          desc.innerHTML = `<strong>${item.description}</strong>`;
+      const desc = document.createElement('div');
+      desc.innerHTML = `<strong>${item.description}</strong>`;
 
-          const category = document.createElement('div');
-          category.textContent = item.category;
+      const category = document.createElement('div');
+      category.textContent = item.category;
 
-          const qr = document.createElement('canvas');
-          qr.className = 'qr';
-          new QRious({
-            element: qr,
-            value: window.location.origin + '/detail.html?id=' + item.id,
-            size: 100
-          });
+      const dateRange = document.createElement('div');
+      dateRange.className = 'info';
+      dateRange.textContent = `${item.fromDate || ''} – ${item.toDate || ''}`;
 
-          const saveBtn = document.createElement('button');
-          saveBtn.textContent = 'Uložit obrázek';
-          saveBtn.onclick = () => {
-            const a = document.createElement('a');
-            a.href = item.imageUrl;
-            a.download = 'kupon.jpg';
-            a.click();
-          };
-
-          const buyBtn = document.createElement('button');
-          buyBtn.textContent = 'Koupit';
-          buyBtn.onclick = () => {
-            window.open('https://example.com', '_blank');
-          };
-
-          const shareBtn = document.createElement('button');
-          shareBtn.textContent = 'Sdílet';
-          shareBtn.onclick = async () => {
-            if (navigator.share) {
-              await navigator.share({
-                title: item.description,
-                text: item.category,
-                url: window.location.origin + '/detail.html?id=' + item.id
-              });
-            } else {
-              alert('Sdílení není podporováno ve vašem prohlížeči.');
-            }
-          };
-
-          card.appendChild(img);
-          card.appendChild(desc);
-          card.appendChild(category);
-          card.appendChild(qr);
-
-          if (item.type === 'letak') {
-            card.appendChild(saveBtn);
-          }
-          if (item.type === 'zbozi') {
-            card.appendChild(buyBtn);
-          }
-          card.appendChild(shareBtn);
-
-          gallery.appendChild(card);
-        });
-
-      } catch (err) {
-        console.error('Chyba při načítání dat:', err);
-        document.getElementById('gallery').textContent = 'Nepodařilo se načíst položky.';
+      const price = document.createElement('div');
+      if ((item.type || 'letak') === 'zbozi' && item.price) {
+        price.textContent = `Cena: ${item.price} Kč`;
       }
-    }
 
-    loadData();
-  </script>
+      const qr = document.createElement('canvas');
+      qr.className = 'qr';
+      new QRious({
+        element: qr,
+        value: window.location.origin + '/detail.html?id=' + item.id,
+        size: 100
+      });
+
+      const saveBtn = document.createElement('button');
+      saveBtn.textContent = 'Uložit obrázek';
+      saveBtn.onclick = () => {
+        const a = document.createElement('a');
+        a.href = item.imageUrl;
+        a.download = 'kupon.jpg';
+        a.click();
+      };
+
+      const buyBtn = document.createElement('button');
+      buyBtn.textContent = 'Koupit';
+      buyBtn.onclick = () => {
+        window.open('https://example.com', '_blank');
+      };
+
+      const shareBtn = document.createElement('button');
+      shareBtn.textContent = 'Sdílet';
+      shareBtn.onclick = async () => {
+        if (navigator.share) {
+          await navigator.share({
+            title: item.description,
+            text: item.category,
+            url: window.location.origin + '/detail.html?id=' + item.id
+          });
+        } else {
+          alert('Sdílení není podporováno ve vašem prohlížeči.');
+        }
+      };
+
+      const archiveBtn = document.createElement('button');
+      archiveBtn.textContent = 'Archivovat';
+      archiveBtn.onclick = async () => {
+        if (confirm('Opravdu archivovat tuto položku?')) {
+          item.archived = true;
+          await updateGitHub();
+        }
+      };
+
+      card.appendChild(img);
+      card.appendChild(desc);
+      card.appendChild(category);
+      card.appendChild(dateRange);
+      if (price.textContent) card.appendChild(price);
+      card.appendChild(qr);
+
+      if ((item.type || 'letak') === 'letak') {
+        card.appendChild(saveBtn);
+      }
+      if ((item.type || 'letak') === 'zbozi') {
+        card.appendChild(buyBtn);
+      }
+
+      card.appendChild(shareBtn);
+      card.appendChild(archiveBtn);
+
+      gallery.appendChild(card);
+    });
+
+  } catch (err) {
+    console.error('Chyba při načítání dat:', err);
+    document.getElementById('gallery').textContent = 'Nepodařilo se načíst položky.';
+  }
+}
+
+async function exportDataToGitHub() {
+  const res = await fetch('/.netlify/functions/export', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(JSON.parse(localStorage.getItem('adminUploads') || '[]'))
+  });
+
+  const result = await res.json();
+  if (res.ok) {
+    alert('Export úspěšný!');
+  } else {
+    alert('Chyba při exportu: ' + result.error);
+  }
+}
+
+async function updateGitHub() {
+  const uploads = JSON.parse(localStorage.getItem('adminUploads') || '[]');
+  const res = await fetch('/.netlify/functions/export', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(uploads)
+  });
+  if (res.ok) {
+    alert('Archivace úspěšná!');
+    location.reload();
+  } else {
+    alert('Chyba při archivaci.');
+  }
+}
+
+loadData();
+</script>
 
 </body>
 </html>
