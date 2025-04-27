@@ -183,23 +183,29 @@ async function generateWWW() {
       return (!item.archived) && (new Date(item.toDate) >= today);
     });
 
+    console.log("🚀 Skickar aktivní položky:", activeItems);
+
     const res = await fetch('/.netlify/functions/export', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(activeItems)
+      body: JSON.stringify({ type: "www", uploads: activeItems })
     });
 
     const result = await res.json();
+
+    console.log("📬 Svar från funktionen:", result);
+
     if (res.ok) {
       alert('WWW prezentace byla vygenerována!');
     } else {
-      alert('Chyba při generování WWW prezentace: ' + result.error);
+      alert('Chyba při generování WWW prezentace: ' + (result.error || 'neznámá chyba'));
     }
   } catch (error) {
-    console.error(error);
+    console.error("❌ Fel vid export:", error);
     alert('Chyba při generování WWW prezentace.');
   }
 }
+
 
 loadData();
 </script>
