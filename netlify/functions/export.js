@@ -1,4 +1,4 @@
-import fetch from 'node-fetch';
+import { fetch } from 'undici';
 
 export async function handler(event, context) {
   if (event.httpMethod !== 'POST') {
