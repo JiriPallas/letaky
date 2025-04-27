@@ -5,25 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin panel</title>
   <style>
-    body { font-family: sans-serif; padding: 2rem; background: #f7f7f7; }
-    form, .seznam { max-width: 700px; margin: auto; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    body { font-family: sans-serif; padding: 2rem; background: #f7f7f7; display: flex; gap: 2rem; }
+    form { width: 50%; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    .preview { width: 50%; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); text-align: center; }
     input, textarea, select { width: 100%; margin-bottom: 1rem; padding: 0.5rem; font-size: 1rem; }
     button { padding: 0.5rem 1rem; font-size: 1rem; margin-right: 0.5rem; }
-    .polozka { border: 1px solid #ddd; margin: 1rem 0; padding: 1rem; border-radius: 5px; background: #fafafa; }
-    img { max-width: 100%; height: auto; margin-top: 0.5rem; border-radius: 4px; }
-    .qr { margin-top: 0.5rem; }
+    img { max-width: 100%; height: auto; margin-top: 1rem; border-radius: 4px; }
     .inline { display: flex; align-items: center; gap: 0.5rem; }
+    .buttons { display: flex; gap: 1rem; }
   </style>
 </head>
 <body>
-  <h1>Admin panel</h1>
-
   <form id="uploadForm">
-    <label for="itemType">Typ položky</label>
-    <select id="itemType" required>
-      <option value="letak">Leták</option>
-      <option value="zbozi">Zboží</option>
-    </select>
+    <h1>Admin panel</h1>
+
+    <label>Typ položky</label>
+    <div class="inline">
+      <input type="radio" id="letak" name="itemType" value="letak" checked>
+      <label for="letak">Leták</label>
+      <input type="radio" id="zbozi" name="itemType" value="zbozi">
+      <label for="zbozi">Zboží</label>
+    </div>
 
     <label for="imageUrl">Adresa obrázku / videa (URL)</label>
     <input type="url" id="imageUrl" required placeholder="https://...">
@@ -60,23 +62,23 @@
     <label for="toDate">Zobrazit do</label>
     <input type="date" id="toDate" required>
 
-    <button type="submit">Uložit</button>
+    <div class="buttons">
+      <button type="submit">Uložit</button>
+      <button type="button" onclick="window.location.href='admin-bilder.html'">Zobrazit admin</button>
+    </div>
   </form>
 
-  <div class="seznam" id="seznam">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-      <h2>Nahrané položky</h2> 
-      <button type="button" onclick="exportDataToGitHub()">Exportovat JSON</button>
-    </div>
+  <div class="preview" id="preview">
+    <h2>Náhled poslední položky</h2>
+    <p>Po uložení se zde zobrazí poslední obrázek.</p>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <script>
     const fromDateInput = document.getElementById('fromDate');
     const toDateInput = document.getElementById('toDate');
     const durationInput = document.getElementById('duration');
-    const itemTypeSelect = document.getElementById('itemType');
     const priceField = document.getElementById('priceField');
+    const preview = document.getElementById('preview');
 
     function setDefaultDates() {
       const today = new Date().toISOString().split('T')[0];
@@ -94,8 +96,10 @@
       }
     }
 
-    itemTypeSelect.addEventListener('change', () => {
-      priceField.style.display = itemTypeSelect.value === 'zbozi' ? 'block' : 'none';
+    document.querySelectorAll('input[name="itemType"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        priceField.style.display = document.getElementById('zbozi').checked ? 'block' : 'none';
+      });
     });
 
     fromDateInput.addEventListener('change', updateToDate);
@@ -103,61 +107,6 @@
     setDefaultDates();
 
     const form = document.getElementById('uploadForm');
-    const seznam = document.getElementById('seznam');
-
-    function renderUploads(uploads) {
-      seznam.innerHTML = '<div style="display: flex; justify-content: space-between; align-items: center;"><h2>Nahrané položky</h2><button type="button" onclick="exportDataToGitHub()">Exportovat JSON</button></div>';
-      uploads.forEach(entry => {
-        const div = document.createElement('div');
-        div.className = 'polozka';
-
-        const img = document.createElement('img');
-        img.src = entry.imageUrl;
-        img.alt = entry.description;
-
-        const text = document.createElement('p');
-        text.textContent = `${entry.category}: ${entry.description}`;
-
-        if (entry.type === "zbozi" && entry.price) {
-          const price = document.createElement('p');
-          price.textContent = `Cena: ${entry.price} Kč`;
-          div.appendChild(price);
-        }
-
-        const zobrazit = document.createElement('button');
-        zobrazit.textContent = 'Zobrazit';
-        zobrazit.onclick = () => {
-          window.open(`../detail.html?id=${entry.id}`, '_blank');
-        };
-
-        const qr = document.createElement('canvas');
-        qr.className = 'qr';
-        new QRious({
-          element: qr,
-          value: `${location.origin.replace(/\/admin$/, '')}/detail.html?id=${entry.id}`,
-          size: 100
-        });
-
-        div.appendChild(img);
-        div.appendChild(text);
-        div.appendChild(zobrazit);
-        div.appendChild(qr);
-
-        seznam.appendChild(div);
-      });
-    }
-
-    async function loadUploads() {
-      try {
-        const res = await fetch('/data/data.json');
-        const data = await res.json();
-        renderUploads(data);
-        localStorage.setItem('adminUploads', JSON.stringify(data));
-      } catch (e) {
-        const uploads = JSON.parse(localStorage.getItem('adminUploads') || '[]');
-        renderUploads(uploads);
-      }
-    }
 
     form.addEventListener('submit', e => {
       e.preventDefault();
@@ -166,7 +115,7 @@
 
       const entry = {
         id,
-        type: document.getElementById('itemType').value,
+        type: document.querySelector('input[name="itemType"]:checked').value,
         imageUrl: document.getElementById('imageUrl').value,
         category: document.getElementById('category').value,
         price: document.getElementById('price').value || null,
@@ -179,32 +128,18 @@
       localStorage.setItem('adminUploads', JSON.stringify(uploads));
       form.reset();
       setDefaultDates();
-      renderUploads(uploads);
+      priceField.style.display = 'none';
+      showPreview(entry);
     });
 
-    async function exportDataToGitHub() {
-      const data = JSON.parse(localStorage.getItem('adminUploads') || '[]');
-
-      try {
-        const res = await fetch('/.netlify/functions/export', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-
-        const result = await res.json();
-        if (res.ok) {
-          alert("✅ Export úspěšný!");
-        } else {
-          alert("❌ Chyba při exportu: " + result.error);
-        }
-      } catch (err) {
-        alert("❌ Chyba při připojení k funkci exportu.");
-        console.error(err);
-      }
+    function showPreview(entry) {
+      preview.innerHTML = `
+        <h2>Náhled poslední položky</h2>
+        <img src="${entry.imageUrl}" alt="${entry.description}">
+        <p><strong>${entry.category}</strong>: ${entry.description}</p>
+        ${entry.type === "zbozi" && entry.price ? `<p><strong>Cena:</strong> ${entry.price} Kč</p>` : ''}
+      `;
     }
-
-    loadUploads();
   </script>
 </body>
 </html>
