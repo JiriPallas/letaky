@@ -11,8 +11,15 @@
     input, textarea, select { width: 100%; margin-bottom: 1rem; padding: 0.5rem; font-size: 1rem; }
     button { padding: 0.5rem 1rem; font-size: 1rem; margin-right: 0.5rem; }
     img { max-width: 100%; height: auto; margin-top: 1rem; border-radius: 4px; }
-    .radio-row { display: flex; align-items: center; gap: 0.3rem; margin-bottom: 0.5rem; }
     .buttons { display: flex; gap: 1rem; }
+    .radio-group label {
+      display: block;
+      font-weight: normal;
+      margin-bottom: 0.5rem;
+    }
+    .radio-group input[type="radio"] {
+      margin-right: 0.3rem;
+    }
   </style>
 </head>
 <body>
@@ -20,15 +27,9 @@
     <h1>Admin panel</h1>
 
     <label>Typ položky</label>
-    <div>
-      <div class="radio-row">
-        <input type="radio" id="letak" name="itemType" value="letak" checked>
-        <label for="letak">Leták</label>
-      </div>
-      <div class="radio-row">
-        <input type="radio" id="zbozi" name="itemType" value="zbozi">
-        <label for="zbozi">Zboží</label>
-      </div>
+    <div class="radio-group">
+      <label><input type="radio" name="itemType" value="letak" checked> Leták</label>
+      <label><input type="radio" name="itemType" value="zbozi"> Zboží</label>
     </div>
 
     <label for="imageUrl">Adresa obrázku / videa (URL)</label>
@@ -102,7 +103,7 @@
 
     document.querySelectorAll('input[name="itemType"]').forEach(radio => {
       radio.addEventListener('change', () => {
-        priceField.style.display = document.getElementById('zbozi').checked ? 'block' : 'none';
+        priceField.style.display = document.querySelector('input[name="itemType"]:checked').value === 'zbozi' ? 'block' : 'none';
       });
     });
 
