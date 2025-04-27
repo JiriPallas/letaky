@@ -1,6 +1,6 @@
 <script>
 const uploads = JSON.parse(localStorage.getItem('adminUploads') || '[]');
-const activeUploads = uploads.filter(item => !item.archived);
+const activeUploads = uploads.filter(item => item.archived !== true);
 
-// Kod för att visa activeUploads istället för alla uploads
+// kod för att visa activeUploads
 </script>

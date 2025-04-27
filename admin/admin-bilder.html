@@ -14,3 +14,18 @@ function exportData() {
   alert('Export dokončen!');
 }
 </script>
+
+<script>
+const gallery = document.getElementById('gallery');
+const sortSelect = document.getElementById('sort');
+const uploads = JSON.parse(localStorage.getItem('adminUploads') || '[]');
+
+function renderGallery(items) {
+  // kod här för att rita ut korten
+}
+
+function sortAndRender() {
+  let activeUploads = uploads.filter(item => item.archived !== true);
+  // sorteringskod
+}
+</script>
