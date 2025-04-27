@@ -11,7 +11,7 @@
     input, textarea, select { width: 100%; margin-bottom: 1rem; padding: 0.5rem; font-size: 1rem; }
     button { padding: 0.5rem 1rem; font-size: 1rem; margin-right: 0.5rem; }
     img { max-width: 100%; height: auto; margin-top: 1rem; border-radius: 4px; }
-    .inline { display: flex; align-items: center; gap: 0.5rem; }
+    .radio-row { display: flex; align-items: center; gap: 0.3rem; margin-bottom: 0.5rem; }
     .buttons { display: flex; gap: 1rem; }
   </style>
 </head>
@@ -20,11 +20,15 @@
     <h1>Admin panel</h1>
 
     <label>Typ položky</label>
-    <div class="inline">
-      <input type="radio" id="letak" name="itemType" value="letak" checked>
-      <label for="letak">Leták</label>
-      <input type="radio" id="zbozi" name="itemType" value="zbozi">
-      <label for="zbozi">Zboží</label>
+    <div>
+      <div class="radio-row">
+        <input type="radio" id="letak" name="itemType" value="letak" checked>
+        <label for="letak">Leták</label>
+      </div>
+      <div class="radio-row">
+        <input type="radio" id="zbozi" name="itemType" value="zbozi">
+        <label for="zbozi">Zboží</label>
+      </div>
     </div>
 
     <label for="imageUrl">Adresa obrázku / videa (URL)</label>
@@ -44,7 +48,7 @@
 
     <div id="priceField" style="display:none;">
       <label for="price">Cena</label>
-      <div class="inline">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
         <input type="number" id="price" min="0" step="1" />
         <span>Kč</span>
       </div>
