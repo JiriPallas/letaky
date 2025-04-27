@@ -12,19 +12,12 @@
     .polozka { border: 1px solid #ddd; margin: 1rem 0; padding: 1rem; border-radius: 5px; background: #fafafa; }
     img { max-width: 100%; height: auto; margin-top: 0.5rem; border-radius: 4px; }
     .qr { margin-top: 0.5rem; }
-    .inline { display: flex; align-items: center; gap: 0.5rem; }
   </style>
 </head>
 <body>
   <h1>Admin panel</h1>
 
   <form id="uploadForm">
-    <label for="itemType">Typ položky</label>
-    <select id="itemType" required>
-      <option value="letak">Leták</option>
-      <option value="zbozi">Zboží</option>
-    </select>
-
     <label for="imageUrl">Adresa obrázku / videa (URL)</label>
     <input type="url" id="imageUrl" required placeholder="https://...">
 
@@ -40,14 +33,6 @@
       <option>Ostatní</option>
     </select>
 
-    <div id="priceField" style="display:none;">
-      <label for="price">Cena</label>
-      <div class="inline">
-        <input type="number" id="price" min="0" step="1" />
-        <span>Kč</span>
-      </div>
-    </div>
-
     <label for="description">Popis</label>
     <textarea id="description" required></textarea>
 
@@ -55,28 +40,22 @@
     <input type="date" id="fromDate" required>
 
     <label for="duration">Počet dní zobrazení</label>
-    <input type="number" id="duration" value="30" min="1" required>
+    <input type="number" id="duration" value="7" min="1" required>
 
     <label for="toDate">Zobrazit do</label>
     <input type="date" id="toDate" required>
 
     <button type="submit">Uložit</button>
+    <button type="button" onclick="exportDataToGitHub()">Exportovat JSON</button>
   </form>
 
-  <div class="seznam" id="seznam">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-      <h2>Nahrané položky</h2> 
-      <button type="button" onclick="exportDataToGitHub()">Exportovat JSON</button>
-    </div>
-  </div>
+  <div class="seznam" id="seznam"></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <script>
     const fromDateInput = document.getElementById('fromDate');
     const toDateInput = document.getElementById('toDate');
     const durationInput = document.getElementById('duration');
-    const itemTypeSelect = document.getElementById('itemType');
-    const priceField = document.getElementById('priceField');
 
     function setDefaultDates() {
       const today = new Date().toISOString().split('T')[0];
@@ -94,10 +73,6 @@
       }
     }
 
-    itemTypeSelect.addEventListener('change', () => {
-      priceField.style.display = itemTypeSelect.value === 'zbozi' ? 'block' : 'none';
-    });
-
     fromDateInput.addEventListener('change', updateToDate);
     durationInput.addEventListener('input', updateToDate);
     setDefaultDates();
@@ -106,7 +81,7 @@
     const seznam = document.getElementById('seznam');
 
     function renderUploads(uploads) {
-      seznam.innerHTML = '<div style="display: flex; justify-content: space-between; align-items: center;"><h2>Nahrané položky</h2><button type="button" onclick="exportDataToGitHub()">Exportovat JSON</button></div>';
+      seznam.innerHTML = '<h2>Nahrané položky</h2>';
       uploads.forEach(entry => {
         const div = document.createElement('div');
         div.className = 'polozka';
@@ -117,12 +92,6 @@
 
         const text = document.createElement('p');
         text.textContent = `${entry.category}: ${entry.description}`;
-
-        if (entry.type === "zbozi" && entry.price) {
-          const price = document.createElement('p');
-          price.textContent = `Cena: ${entry.price} Kč`;
-          div.appendChild(price);
-        }
 
         const zobrazit = document.createElement('button');
         zobrazit.textContent = 'Zobrazit';
@@ -153,7 +122,8 @@
         const data = await res.json();
         renderUploads(data);
         localStorage.setItem('adminUploads', JSON.stringify(data));
-      } catch (e) {
+      } catch (err) {
+        console.warn("Nelze načíst data.json, načítám z localStorage.");
         const uploads = JSON.parse(localStorage.getItem('adminUploads') || '[]');
         renderUploads(uploads);
       }
@@ -166,10 +136,8 @@
 
       const entry = {
         id,
-        type: document.getElementById('itemType').value,
         imageUrl: document.getElementById('imageUrl').value,
         category: document.getElementById('category').value,
-        price: document.getElementById('price').value || null,
         description: document.getElementById('description').value,
         fromDate: document.getElementById('fromDate').value,
         toDate: document.getElementById('toDate').value
