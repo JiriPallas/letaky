@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Archivované položky</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; background: #f4f4f4; }
+    h1 { text-align: center; margin-bottom: 1rem; }
+    .controls { text-align: center; margin-bottom: 2rem; }
+    .grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1rem; }
+    .card {
+      background: white;
+      padding: 0.5rem;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      text-align: center;
+      font-size: 0.9rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    img {
+      max-width: 100%;
+      height: 80px;
+      object-fit: cover;
+      margin-bottom: 0.5rem;
+      border-radius: 4px;
+    }
+    button {
+      margin: 0.3rem;
+      padding: 0.3rem 0.6rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .info {
+      font-size: 0.75rem;
+      margin: 0.3rem 0;
+    }
+    select {
+      padding: 0.5rem;
+      font-size: 1rem;
+    }
+    .top-bar {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .top-bar button {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      background: #0077cc;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <button onclick="window.location.href='admin-bilder.html'">Zpět na aktivní položky</button>
+  </div>
+
+  <h1>Archivované položky</h1>
+
+  <div class="grid" id="gallery"></div>
+
+  <script>
+    const gallery = document.getElementById('gallery');
+    const uploads = JSON.parse(localStorage.getItem('adminUploads') || '[]');
+
+    function renderGallery(items) {
+      gallery.innerHTML = '';
+      items.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        const img = document.createElement('img');
+        img.src = item.imageUrl;
+        img.alt = item.description;
+
+        const info = document.createElement('div');
+        info.className = 'info';
+        info.innerHTML = `
+          <strong>${item.category}</strong><br>
+          ${item.type === 'zbozi' && item.price ? `Cena: ${item.price} Kč<br>` : ''}
+          ${item.fromDate} – ${item.toDate}
+        `;
+
+        const viewBtn = document.createElement('button');
+        viewBtn.textContent = 'Náhled';
+        viewBtn.onclick = () => window.open(item.imageUrl, '_blank');
+
+        card.appendChild(img);
+        card.appendChild(info);
+        card.appendChild(viewBtn);
+
+        gallery.appendChild(card);
+      });
+    }
+
+    function loadArchived() {
+      let archivedUploads = uploads.filter(item => item.archived);
+      renderGallery(archivedUploads);
+    }
+
+    loadArchived();
+  </script>
+
+</body>
+</html>
