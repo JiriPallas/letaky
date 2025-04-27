@@ -3,152 +3,131 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin panel</title>
+  <title>Admin Panel</title>
   <style>
-    body { font-family: sans-serif; padding: 2rem; background: #f7f7f7; display: flex; gap: 2rem; }
-    form { width: 50%; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    .preview { width: 50%; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); text-align: center; }
+    body { font-family: sans-serif; padding: 2rem; background: #f7f7f7; }
+    form { max-width: 600px; margin: auto; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
     input, textarea, select { width: 100%; margin-bottom: 1rem; padding: 0.5rem; font-size: 1rem; }
-    button { padding: 0.5rem 1rem; font-size: 1rem; margin-right: 0.5rem; }
-    img { max-width: 100%; height: auto; margin-top: 1rem; border-radius: 4px; }
-    .buttons { display: flex; gap: 1rem; }
-    .radio-group {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      margin-bottom: 1rem;
-    }
-    .radio-inline {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-      margin-bottom: 0.5rem;
-    }
+    button { padding: 0.5rem 1rem; font-size: 1rem; margin: 0.5rem 0; }
   </style>
 </head>
 <body>
-  <form id="uploadForm">
-    <h1>Admin panel</h1>
 
-    <label>Typ položky</label>
-    <div class="radio-group">
-      <label class="radio-inline"><input type="radio" name="itemType" value="letak" checked> Leták</label>
-      <label class="radio-inline"><input type="radio" name="itemType" value="zbozi"> Zboží</label>
-    </div>
+<h1>Admin Panel</h1>
 
-    <label for="imageUrl">Adresa obrázku / videa (URL)</label>
-    <input type="url" id="imageUrl" required placeholder="https://...">
+<form id="uploadForm">
+  <label for="imageUrl">Adresa obrázku / videa (URL)</label>
+  <input type="url" id="imageUrl" required placeholder="https://...">
 
-    <label for="category">Kategorie</label>
-    <select id="category" required>
-      <option value="">-- Vyberte --</option>
-      <option>Potraviny</option>
-      <option>Motorová vozidla</option>
-      <option>Bydlení</option>
-      <option>Šaty</option>
-      <option>Sportovní potřeby</option>
-      <option>Elektronika</option>
-      <option>Ostatní</option>
-    </select>
+  <label for="category">Kategorie</label>
+  <select id="category" required>
+    <option value="">-- Vyberte --</option>
+    <option>Potraviny</option>
+    <option>Motorová vozidla</option>
+    <option>Bydlení</option>
+    <option>Šaty</option>
+    <option>Sportovní potřeby</option>
+    <option>Elektronika</option>
+    <option>Ostatní</option>
+  </select>
 
-    <div id="priceField" style="display:none;">
-      <label for="price">Cena</label>
-      <div style="display: flex; align-items: center; gap: 0.5rem;">
-        <input type="number" id="price" min="0" step="1" />
-        <span>Kč</span>
-      </div>
-    </div>
+  <label for="description">Popis</label>
+  <textarea id="description" required></textarea>
 
-    <label for="description">Popis</label>
-    <textarea id="description" required></textarea>
+  <label for="fromDate">Zobrazit od</label>
+  <input type="date" id="fromDate" required>
 
-    <label for="fromDate">Zobrazit od</label>
-    <input type="date" id="fromDate" required>
+  <label for="duration">Počet dní zobrazení</label>
+  <input type="number" id="duration" value="30" min="1" required>
 
-    <label for="duration">Počet dní zobrazení</label>
-    <input type="number" id="duration" value="30" min="1" required>
+  <label for="toDate">Zobrazit do</label>
+  <input type="date" id="toDate" required>
 
-    <label for="toDate">Zobrazit do</label>
-    <input type="date" id="toDate" required>
+  <fieldset>
+    <legend>Typ položky</legend>
+    <label><input type="radio" name="type" value="letak" checked> Leták</label>
+    <label><input type="radio" name="type" value="zbozi"> Zboží</label>
+  </fieldset>
 
-    <div class="buttons">
-      <button type="submit">Uložit</button>
-      <button type="button" onclick="window.location.href='admin-bilder.html'">Zobrazit admin</button>
-    </div>
-  </form>
+  <label for="price" id="priceLabel" style="display:none;">Cena (Kč)</label>
+  <input type="number" id="price" min="0" style="display:none;">
 
-  <div class="preview" id="preview">
-    <h2>Náhled poslední položky</h2>
-    <p>Po uložení se zde zobrazí poslední obrázek.</p>
-  </div>
+  <button type="submit">Uložit</button>
+  <button type="button" onclick="exportDataToGitHub()">Exportovat JSON</button>
+</form>
 
-  <script>
-    const fromDateInput = document.getElementById('fromDate');
-    const toDateInput = document.getElementById('toDate');
-    const durationInput = document.getElementById('duration');
-    const priceField = document.getElementById('priceField');
-    const preview = document.getElementById('preview');
+<script>
+document.getElementById('duration').addEventListener('input', updateToDate);
+document.getElementById('fromDate').addEventListener('change', updateToDate);
 
-    function setDefaultDates() {
-      const today = new Date().toISOString().split('T')[0];
-      fromDateInput.value = today;
-      updateToDate();
+function updateToDate() {
+  const from = new Date(document.getElementById('fromDate').value);
+  const days = parseInt(document.getElementById('duration').value);
+  if (!isNaN(from.getTime()) && days > 0) {
+    const to = new Date(from);
+    to.setDate(to.getDate() + days);
+    document.getElementById('toDate').value = to.toISOString().split('T')[0];
+  }
+}
+
+// visa/dölja prisfält
+document.querySelectorAll('input[name="type"]').forEach(radio => {
+  radio.addEventListener('change', () => {
+    if (document.querySelector('input[name="type"]:checked').value === 'zbozi') {
+      document.getElementById('price').style.display = 'block';
+      document.getElementById('priceLabel').style.display = 'block';
+    } else {
+      document.getElementById('price').style.display = 'none';
+      document.getElementById('priceLabel').style.display = 'none';
     }
+  });
+});
 
-    function updateToDate() {
-      const from = new Date(fromDateInput.value);
-      const days = parseInt(durationInput.value);
-      if (!isNaN(from.getTime()) && days > 0) {
-        const to = new Date(from);
-        to.setDate(to.getDate() + days);
-        toDateInput.value = to.toISOString().split('T')[0];
-      }
-    }
+document.getElementById('uploadForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const uploads = JSON.parse(localStorage.getItem('adminUploads') || '[]');
+  const id = 'ID-' + Math.random().toString(36).substr(2, 9);
 
-    document.querySelectorAll('input[name="itemType"]').forEach(radio => {
-      radio.addEventListener('change', () => {
-        priceField.style.display = document.querySelector('input[name="itemType"]:checked').value === 'zbozi' ? 'block' : 'none';
-      });
-    });
+  const entry = {
+    id,
+    imageUrl: document.getElementById('imageUrl').value,
+    category: document.getElementById('category').value,
+    description: document.getElementById('description').value,
+    fromDate: document.getElementById('fromDate').value,
+    toDate: document.getElementById('toDate').value,
+    type: document.querySelector('input[name="type"]:checked').value,
+    price: document.getElementById('price').value || null,
+    archived: false
+  };
 
-    fromDateInput.addEventListener('change', updateToDate);
-    durationInput.addEventListener('input', updateToDate);
-    setDefaultDates();
+  uploads.push(entry);
+  localStorage.setItem('adminUploads', JSON.stringify(uploads));
+  alert('Uloženo!');
+  document.getElementById('uploadForm').reset();
+});
 
-    const form = document.getElementById('uploadForm');
+async function exportDataToGitHub() {
+  const allData = JSON.parse(localStorage.getItem('adminUploads') || '[]');
+  const today = new Date();
+  const validData = allData
+    .filter(item => new Date(item.toDate) >= today)
+    .sort((a, b) => new Date(b.fromDate) - new Date(a.fromDate))
+    .slice(0, 10);
 
-    form.addEventListener('submit', e => {
-      e.preventDefault();
-      const uploads = JSON.parse(localStorage.getItem('adminUploads') || '[]');
-      const id = 'ID-' + Math.random().toString(36).substr(2, 9);
+  const res = await fetch('/.netlify/functions/export', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(validData)
+  });
 
-      const entry = {
-        id,
-        type: document.querySelector('input[name="itemType"]:checked').value,
-        imageUrl: document.getElementById('imageUrl').value,
-        category: document.getElementById('category').value,
-        price: document.getElementById('price').value || null,
-        description: document.getElementById('description').value,
-        fromDate: document.getElementById('fromDate').value,
-        toDate: document.getElementById('toDate').value
-      };
+  const result = await res.json();
+  if (res.ok) {
+    alert('Export úspěšný!');
+  } else {
+    alert('Chyba při exportu: ' + result.error);
+  }
+}
+</script>
 
-      uploads.push(entry);
-      localStorage.setItem('adminUploads', JSON.stringify(uploads));
-      form.reset();
-      setDefaultDates();
-      priceField.style.display = 'none';
-      showPreview(entry);
-    });
-
-    function showPreview(entry) {
-      preview.innerHTML = `
-        <h2>Náhled poslední položky</h2>
-        <img src="${entry.imageUrl}" alt="${entry.description}">
-        <p><strong>${entry.category}</strong>: ${entry.description}</p>
-        ${entry.type === "zbozi" && entry.price ? `<p><strong>Cena:</strong> ${entry.price} Kč</p>` : ''}
-      `;
-    }
-  </script>
 </body>
 </html>
