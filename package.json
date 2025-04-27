@@ -1,6 +1,9 @@
 {
   "type": "module",
-  "dependencies": { 
+  "scripts": {
+    "build": "echo 'No build needed'"
+  },
+  "dependencies": {
     "node-fetch": "^3.3.2"
   }
 }
