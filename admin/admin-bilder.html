@@ -1,31 +1,138 @@
-<script>
-function exportData() {
-  const data = localStorage.getItem('adminUploads') || '[]';
-  const blob = new Blob([data], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'data.json';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Aktivní položky</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; background: #f4f4f4; }
+    h1 { text-align: center; margin-bottom: 1rem; }
+    .controls { text-align: center; margin-bottom: 2rem; }
+    .grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1rem; }
+    .card {
+      background: white;
+      padding: 0.5rem;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      text-align: center;
+      font-size: 0.9rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    img { max-width: 100%; height: 80px; object-fit: cover; margin-bottom: 0.5rem; border-radius: 4px; }
+    button { margin: 0.3rem; padding: 0.3rem 0.6rem; font-size: 0.8rem; cursor: pointer; }
+    .info { font-size: 0.75rem; margin: 0.3rem 0; }
+    .top-bar { text-align: center; margin-bottom: 2rem; }
+    .top-bar button { padding: 0.5rem 1rem; font-size: 1rem; margin: 0.5rem; background: #0077cc; color: white; border: none; border-radius: 5px; cursor: pointer; }
+  </style>
+</head>
+<body>
 
-  alert('Export dokončen!');
-}
-</script>
+  <div class="top-bar">
+    <button onclick="window.location.href='index.html'">Zpět do Admin</button>
+    <button onclick="exportData()">Exportovat JSON</button>
+  </div>
 
-<script>
-const gallery = document.getElementById('gallery');
-const sortSelect = document.getElementById('sort');
-const uploads = JSON.parse(localStorage.getItem('adminUploads') || '[]');
+  <h1>Aktivní položky</h1>
 
-function renderGallery(items) {
-  // kod här för att rita ut korten
-}
+  <div class="controls">
+    <label for="sort">Seřadit podle:</label>
+    <select id="sort">
+      <option value="date-new">Datum (nejnovější)</option>
+      <option value="date-old">Datum (nejstarší)</option>
+      <option value="category-az">Kategorie (A-Z)</option>
+      <option value="category-za">Kategorie (Z-A)</option>
+      <option value="type">Typ položky</option>
+    </select>
+  </div>
 
-function sortAndRender() {
-  let activeUploads = uploads.filter(item => item.archived !== true);
-  // sorteringskod
-}
-</script>
+  <div class="grid" id="gallery"></div>
+
+  <script>
+    function exportData() {
+      const data = localStorage.getItem('adminUploads') || '[]';
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'data.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      alert('Export dokončen!');
+    }
+
+    const gallery = document.getElementById('gallery');
+    const sortSelect = document.getElementById('sort');
+    const uploads = JSON.parse(localStorage.getItem('adminUploads') || '[]').map(item => {
+      if (item.archived === undefined) item.archived = false;
+      return item;
+    });
+
+    function renderGallery(items) {
+      gallery.innerHTML = '';
+      items.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        const img = document.createElement('img');
+        img.src = item.imageUrl;
+        img.alt = item.description;
+
+        const info = document.createElement('div');
+        info.className = 'info';
+        info.innerHTML = `<strong>${item.category}</strong><br>
+                          ${item.type === 'zbozi' && item.price ? `Cena: ${item.price} Kč<br>` : ''}
+                          ${item.fromDate} – ${item.toDate}`;
+
+        const viewBtn = document.createElement('button');
+        viewBtn.textContent = 'Náhled';
+        viewBtn.onclick = () => window.open(item.imageUrl, '_blank');
+
+        const archiveBtn = document.createElement('button');
+        archiveBtn.textContent = 'Archivuj';
+        archiveBtn.onclick = () => {
+          if (confirm('Opravdu archivovat tuto položku?')) {
+            item.archived = true;
+            localStorage.setItem('adminUploads', JSON.stringify(uploads));
+            location.reload();
+          }
+        };
+
+        card.appendChild(img);
+        card.appendChild(info);
+        card.appendChild(viewBtn);
+        card.appendChild(archiveBtn);
+
+        gallery.appendChild(card);
+      });
+    }
+
+    function sortAndRender() {
+      let activeUploads = uploads.filter(item => item.archived !== true);
+      const sortBy = sortSelect.value;
+
+      if (sortBy === 'date-new') {
+        activeUploads.sort((a, b) => new Date(b.fromDate) - new Date(a.fromDate)).reverse();
+      } else if (sortBy === 'date-old') {
+        activeUploads.sort((a, b) => new Date(a.fromDate) - new Date(b.fromDate));
+      } else if (sortBy === 'category-az') {
+        activeUploads.sort((a, b) => a.category.localeCompare(b.category));
+      } else if (sortBy === 'category-za') {
+        activeUploads.sort((a, b) => b.category.localeCompare(a.category));
+      } else if (sortBy === 'type') {
+        activeUploads.sort((a, b) => a.type.localeCompare(b.type));
+      }
+
+      renderGallery(activeUploads);
+    }
+
+    sortSelect.addEventListener('change', sortAndRender);
+
+    sortAndRender();
+  </script>
+
+</body>
+</html>

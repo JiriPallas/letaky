@@ -1,6 +1,35 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Letákové kupony</title>
+</head>
+<body>
+
+<h1>Letákové kupony</h1>
+<div id="gallery"></div>
+
 <script>
-const uploads = JSON.parse(localStorage.getItem('adminUploads') || '[]');
+const gallery = document.getElementById('gallery');
+const uploads = JSON.parse(localStorage.getItem('adminUploads') || '[]').map(item => {
+  if (item.archived === undefined) item.archived = false;
+  return item;
+});
 const activeUploads = uploads.filter(item => item.archived !== true);
 
-// kod för att visa activeUploads
+gallery.innerHTML = '';
+activeUploads.forEach(item => {
+  const div = document.createElement('div');
+  div.innerHTML = `
+    <img src="${item.imageUrl}" alt="${item.description}" style="width:200px;display:block;margin-bottom:5px;">
+    <div>${item.description}</div>
+    <div>${item.category}</div>
+    <div>${item.fromDate} - ${item.toDate}</div>
+  `;
+  gallery.appendChild(div);
+});
 </script>
+
+</body>
+</html>
