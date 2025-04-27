@@ -48,7 +48,7 @@
     .top-bar button {
       padding: 0.5rem 1rem;
       font-size: 1rem;
-      margin-bottom: 1rem;
+      margin: 0.5rem;
       background: #0077cc;
       color: white;
       border: none;
@@ -61,6 +61,7 @@
 
   <div class="top-bar">
     <button onclick="window.location.href='index.html'">Zpět do Admin</button>
+    <button onclick="exportData()">Exportovat JSON</button>
   </div>
 
   <h1>Aktivní položky</h1>
@@ -144,6 +145,19 @@
     }
 
     sortSelect.addEventListener('change', sortAndRender);
+
+    function exportData() {
+      const data = localStorage.getItem('adminUploads') || '[]';
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'data.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
 
     sortAndRender();
   </script>
