@@ -12,13 +12,17 @@
     button { padding: 0.5rem 1rem; font-size: 1rem; margin-right: 0.5rem; }
     img { max-width: 100%; height: auto; margin-top: 1rem; border-radius: 4px; }
     .buttons { display: flex; gap: 1rem; }
-    .radio-group label {
-      display: block;
-      font-weight: normal;
-      margin-bottom: 0.5rem;
+    .radio-group {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      margin-bottom: 1rem;
     }
-    .radio-group input[type="radio"] {
-      margin-right: 0.3rem;
+    .radio-inline {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-bottom: 0.5rem;
     }
   </style>
 </head>
@@ -28,8 +32,8 @@
 
     <label>Typ položky</label>
     <div class="radio-group">
-      <label><input type="radio" name="itemType" value="letak" checked> Leták</label>
-      <label><input type="radio" name="itemType" value="zbozi"> Zboží</label>
+      <label class="radio-inline"><input type="radio" name="itemType" value="letak" checked> Leták</label>
+      <label class="radio-inline"><input type="radio" name="itemType" value="zbozi"> Zboží</label>
     </div>
 
     <label for="imageUrl">Adresa obrázku / videa (URL)</label>
