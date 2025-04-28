@@ -4,6 +4,22 @@
     "build": "echo 'No build needed'"
   },
   "dependencies": {
+    "node-fetch": "^2.7.0",
     "undici": "^5.22.0"
-  }
+  },
+  "name": "letaky",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JiriPallas/letaky.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JiriPallas/letaky/issues"
+  },
+  "homepage": "https://github.com/JiriPallas/letaky#readme",
+  "description": ""
 }
