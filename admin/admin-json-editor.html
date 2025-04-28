@@ -47,18 +47,8 @@
       try {
         const data = JSON.parse(area.value);
 
-        // Kontrola: všechny records måste ha type och category
-        const missing = data.filter(item => !item.type || !item.category);
-
-        if (missing.length > 0) {
-          message.innerHTML = `<span class="error">Některé položky nemají 'type' nebo 'category'.</span>`;
-          return false;
-        }
-
-        // Kontrola: žádný null hodnot
-        const hasNull = JSON.stringify(data).includes(": null");
-        if (hasNull) {
-          message.innerHTML = `<span class="error">V JSON jsou hodnoty null – opravte je před uložením.</span>`;
+        if (JSON.stringify(data).includes(": null")) {
+          message.innerHTML = `<span class="error">JSON obsahuje hodnoty null!</span>`;
           return false;
         }
 
@@ -72,7 +62,7 @@
 
     async function saveJson() {
       if (!validateJson()) {
-        alert("Neplatný JSON! Upravte chyby před uložením.");
+        alert("Neplatný JSON! Opravte chyby před uložením.");
         return;
       }
 
@@ -81,16 +71,17 @@
       const res = await fetch('/.netlify/functions/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uploads: data, type: 'www' })
+        body: JSON.stringify({ uploads: data, type: 'data' })   // <-- type: 'data'
       });
 
+      const result = await res.json();
+
       if (res.ok) {
-        document.getElementById('message').innerHTML = `<span class="success">✅ Data byla uložena na server!</span>`;
-        alert('Data byla exportována!');
+        document.getElementById('message').innerHTML = `<span class="success">✅ Data byla uložena!</span>`;
+        alert('Data byla exportována.');
       } else {
-        const result = await res.json();
         document.getElementById('message').innerHTML = `<span class="error">Chyba: ${result.error}</span>`;
-        alert('Chyba při ukládání dat.');
+        alert('Chyba při ukládání.');
       }
     }
 
@@ -100,7 +91,7 @@
         const data = JSON.parse(area.value);
         area.value = JSON.stringify(data, null, 2);
       } catch (err) {
-        alert('Nelze formátovat: JSON není platný.');
+        alert('Nelze formátovat – JSON není platný.');
       }
     }
 
