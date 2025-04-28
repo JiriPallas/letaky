@@ -126,14 +126,24 @@ function renderGallery() {
     const archiveBtn = document.createElement('button');
     archiveBtn.className = 'small';
     archiveBtn.textContent = 'Archivovat';
-    archiveBtn.onclick = async () => {
-      if (confirm('Opravdu archivovat tuto položku?')) {
-        item.archived = true;
-        await saveData();
-        alert('Položka archivována.');
-        loadData();
+
+    async function saveData() {
+      const res = await fetch('/.netlify/functions/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uploads: uploads, type: 'data' })
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        console.error('Chyba při ukládání:', result.error);
+        alert('Chyba při ukládání dat!');
+      } else {
+        console.log('Data byla uložena.');
       }
-    };
+    }
+
 
     card.appendChild(img);
     card.appendChild(desc);
