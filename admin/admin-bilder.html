@@ -4,11 +4,124 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin - Aktivní položky</title>
-  <script src="data-utils.js"></script> <!-- OBS! -->
+  <script src="data-utils.js"></script> <!-- Viktigt: koppla data-utils -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <style>
     body { font-family: sans-serif; padding: 2rem; background: #f4f4f4; }
     h1 { text-align: center; margin-bottom: 2rem; }
     .top-bar { text-align: center; margin-bottom: 2rem; }
-    .top-bar button { padding: 0.5rem 1rem; margin: 0.5rem; background: #0077cc; color: white; border: none; border-radius: 5px; cursor: pointer; }
-    .grid { display: grid; grid
+    .top-bar button {
+      padding: 0.5rem 1rem;
+      margin: 0.5rem;
+      background: #0077cc;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    .card {
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      text-align: center;
+      font-size: 0.9rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    img {
+      max-width: 100%;
+      height: 120px;
+      object-fit: cover;
+      margin-bottom: 0.5rem;
+      border-radius: 4px;
+    }
+    button.small {
+      margin-top: 0.3rem;
+      font-size: 0.8rem;
+      padding: 0.3rem 0.6rem;
+      width: 90%;
+    }
+    canvas.qr { margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+
+<div class="top-bar">
+  <button onclick="window.location.href='index.html'">Zpět do Admin</button>
+  <button onclick="window.location.href='admin-json-editor.html'">Editovat Data (JSON)</button>
+</div>
+
+<h1>Aktivní položky</h1>
+
+<div class="grid" id="gallery"></div>
+
+<script>
+async function loadGallery() {
+  const uploads = await fetchUploads();
+  const gallery = document.getElementById('gallery');
+  gallery.innerHTML = '';
+
+  uploads.filter(item => item.archived !== true).forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const img = document.createElement('img');
+    img.src = item.imageUrl;
+    img.alt = item.description;
+
+    const desc = document.createElement('div');
+    desc.innerHTML = `<strong>${item.description}</strong>`;
+
+    const category = document.createElement('div');
+    category.textContent = item.category;
+
+    const dates = document.createElement('div');
+    dates.textContent = `${item.fromDate} – ${item.toDate}`;
+
+    const price = document.createElement('div');
+    if (item.type === 'zbozi' && item.price) {
+      price.textContent = `Cena: ${item.price} Kč`;
+    }
+
+    const qr = document.createElement('canvas');
+    qr.className = 'qr';
+    new QRious({
+      element: qr,
+      value: window.location.origin + '/detail.html?id=' + item.id,
+      size: 100
+    });
+
+    const archiveBtn = document.createElement('button');
+    archiveBtn.className = 'small';
+    archiveBtn.textContent = 'Archivovat';
+    archiveBtn.onclick = () => {
+      if (confirm('Opravdu archivovat tuto položku?')) {
+        updateUpload(item.id, { archived: true });
+      }
+    };
+
+    card.appendChild(img);
+    card.appendChild(desc);
+    card.appendChild(category);
+    card.appendChild(dates);
+    if (item.type === 'zbozi') card.appendChild(price);
+    card.appendChild(qr);
+    card.appendChild(archiveBtn);
+
+    gallery.appendChild(card);
+  });
+}
+
+// Starta sidan
+loadGallery();
+</script>
+
+</body>
+</html>
