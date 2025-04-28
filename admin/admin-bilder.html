@@ -46,7 +46,7 @@ let uploads = [];
 
 async function loadData() {
   try {
-    const res = await fetch('../data/data.json');
+    const res = await fetch('../data/data.json?no-cache=' + Date.now()); // alltid ny
     uploads = await res.json();
     renderGallery();
   } catch (err) {
@@ -154,21 +154,25 @@ function renderGallery() {
 }
 
 async function saveData() {
-  const res = await fetch('/.netlify/functions/export', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ uploads: uploads, type: 'data' })
-  });
+  try {
+    const res = await fetch('/.netlify/functions/export', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(uploads)
+    });
 
-  const result = await res.json();
-
-  if (!res.ok) {
-    console.error('Chyba při ukládání:', result.error);
-    alert('Chyba při ukládání dat!');
-  } else {
-    console.log('Data byla uložena.');
-    alert('Archivace byla úspěšná!');
-    loadData();
+    const result = await res.json();
+    if (!res.ok) {
+      console.error('Chyba při ukládání:', result.error);
+      alert('Chyba při ukládání dat!');
+    } else {
+      console.log('Data byla uložena.');
+      alert('Archivace byla úspěšná!');
+      await loadData();  // hämta färska server-data
+    }
+  } catch (error) {
+    console.error('Chyba při volání serveru:', error);
+    alert('Chyba při spojení se serverem.');
   }
 }
 
