@@ -3,131 +3,86 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin Panel</title>
+  <title>Admin panel</title>
+  <script src="data-utils.js"></script> <!-- OBS! -->
   <style>
     body { font-family: sans-serif; padding: 2rem; background: #f7f7f7; }
-    form { max-width: 600px; margin: auto; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    form { max-width: 700px; margin: auto; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
     input, textarea, select { width: 100%; margin-bottom: 1rem; padding: 0.5rem; font-size: 1rem; }
-    button { padding: 0.5rem 1rem; font-size: 1rem; margin: 0.5rem 0; }
+    button { padding: 0.5rem 1rem; font-size: 1rem; }
   </style>
 </head>
 <body>
+  <h1>Admin panel</h1>
 
-<h1>Admin Panel</h1>
-
-<form id="uploadForm">
-  <label for="imageUrl">Adresa obrázku / videa (URL)</label>
-  <input type="url" id="imageUrl" required placeholder="https://...">
-
-  <label for="category">Kategorie</label>
-  <select id="category" required>
-    <option value="">-- Vyberte --</option>
-    <option>Potraviny</option>
-    <option>Motorová vozidla</option>
-    <option>Bydlení</option>
-    <option>Šaty</option>
-    <option>Sportovní potřeby</option>
-    <option>Elektronika</option>
-    <option>Ostatní</option>
-  </select>
-
-  <label for="description">Popis</label>
-  <textarea id="description" required></textarea>
-
-  <label for="fromDate">Zobrazit od</label>
-  <input type="date" id="fromDate" required>
-
-  <label for="duration">Počet dní zobrazení</label>
-  <input type="number" id="duration" value="30" min="1" required>
-
-  <label for="toDate">Zobrazit do</label>
-  <input type="date" id="toDate" required>
-
-  <fieldset>
-    <legend>Typ položky</legend>
+  <form id="uploadForm">
+    <label>Typ položky:</label><br>
     <label><input type="radio" name="type" value="letak" checked> Leták</label>
     <label><input type="radio" name="type" value="zbozi"> Zboží</label>
-  </fieldset>
 
-  <label for="price" id="priceLabel" style="display:none;">Cena (Kč)</label>
-  <input type="number" id="price" min="0" style="display:none;">
+    <label for="imageUrl">Adresa obrázku / videa (URL)</label>
+    <input type="url" id="imageUrl" required placeholder="https://...">
 
-  <button type="submit">Uložit</button>
-  <button type="button" onclick="exportDataToGitHub()">Exportovat JSON</button>
-</form>
+    <label for="category">Kategorie</label>
+    <select id="category" required>
+      <option value="">-- Vyberte --</option>
+      <option>Potraviny</option>
+      <option>Motorová vozidla</option>
+      <option>Bydlení</option>
+      <option>Šaty</option>
+      <option>Sportovní potřeby</option>
+      <option>Elektronika</option>
+      <option>Ostatní</option>
+    </select>
 
-<script>
-document.getElementById('duration').addEventListener('input', updateToDate);
-document.getElementById('fromDate').addEventListener('change', updateToDate);
+    <div id="priceField" style="display: none;">
+      <label for="price">Cena (Kč)</label>
+      <input type="number" id="price" min="0">
+    </div>
 
-function updateToDate() {
-  const from = new Date(document.getElementById('fromDate').value);
-  const days = parseInt(document.getElementById('duration').value);
-  if (!isNaN(from.getTime()) && days > 0) {
-    const to = new Date(from);
-    to.setDate(to.getDate() + days);
-    document.getElementById('toDate').value = to.toISOString().split('T')[0];
-  }
-}
+    <label for="description">Popis</label>
+    <textarea id="description" required></textarea>
 
-// visa/dölja prisfält
-document.querySelectorAll('input[name="type"]').forEach(radio => {
-  radio.addEventListener('change', () => {
-    if (document.querySelector('input[name="type"]:checked').value === 'zbozi') {
-      document.getElementById('price').style.display = 'block';
-      document.getElementById('priceLabel').style.display = 'block';
-    } else {
-      document.getElementById('price').style.display = 'none';
-      document.getElementById('priceLabel').style.display = 'none';
-    }
-  });
-});
+    <label for="fromDate">Zobrazit od</label>
+    <input type="date" id="fromDate" required>
 
-document.getElementById('uploadForm').addEventListener('submit', e => {
-  e.preventDefault();
-  const uploads = JSON.parse(localStorage.getItem('adminUploads') || '[]');
-  const id = 'ID-' + Math.random().toString(36).substr(2, 9);
+    <label for="toDate">Zobrazit do</label>
+    <input type="date" id="toDate" required>
 
-  const entry = {
-    id,
-    imageUrl: document.getElementById('imageUrl').value,
-    category: document.getElementById('category').value,
-    description: document.getElementById('description').value,
-    fromDate: document.getElementById('fromDate').value,
-    toDate: document.getElementById('toDate').value,
-    type: document.querySelector('input[name="type"]:checked').value,
-    price: document.getElementById('price').value || null,
-    archived: false
-  };
+    <button type="submit">Uložit</button>
+  </form>
 
-  uploads.push(entry);
-  localStorage.setItem('adminUploads', JSON.stringify(uploads));
-  alert('Uloženo!');
-  document.getElementById('uploadForm').reset();
-});
+  <script>
+    const form = document.getElementById('uploadForm');
+    const priceField = document.getElementById('priceField');
 
-async function exportDataToGitHub() {
-  const allData = JSON.parse(localStorage.getItem('adminUploads') || '[]');
-  const today = new Date();
-  const validData = allData
-    .filter(item => new Date(item.toDate) >= today)
-    .sort((a, b) => new Date(b.fromDate) - new Date(a.fromDate))
-    .slice(0, 10);
+    document.querySelectorAll('input[name="type"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        priceField.style.display = (document.querySelector('input[name="type"]:checked').value === 'zbozi') ? 'block' : 'none';
+      });
+    });
 
-  const res = await fetch('/.netlify/functions/export', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(validData)
-  });
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const id = 'ID-' + Math.random().toString(36).substr(2, 9);
 
-  const result = await res.json();
-  if (res.ok) {
-    alert('Export úspěšný!');
-  } else {
-    alert('Chyba při exportu: ' + result.error);
-  }
-}
-</script>
+      const entry = {
+        id,
+        type: document.querySelector('input[name="type"]:checked').value,
+        imageUrl: document.getElementById('imageUrl').value,
+        category: document.getElementById('category').value,
+        description: document.getElementById('description').value,
+        fromDate: document.getElementById('fromDate').value,
+        toDate: document.getElementById('toDate').value,
+        archived: false
+      };
 
+      if (entry.type === 'zbozi') {
+        entry.price = parseInt(document.getElementById('price').value) || 0;
+      }
+
+      await insertUpload(entry);
+    });
+  </script>
 </body>
 </html>
