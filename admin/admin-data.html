@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data - JSON přehled</title>
+  <style>
+    body { font-family: monospace; padding: 2rem; background: #eef; }
+    pre { background: #fff; padding: 1rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.2); overflow-x: auto; }
+  </style>
+</head>
+<body>
+
+  <h1>Data uložená v systému</h1>
+  <pre id="output">Načítání...</pre>
+
+  <script>
+    async function loadData() {
+      try {
+        const res = await fetch('../data/data.json');
+        const json = await res.json();
+        document.getElementById('output').textContent = JSON.stringify(json, null, 2);
+      } catch (err) {
+        document.getElementById('output').textContent = 'Chyba při načítání dat.';
+      }
+    }
+    loadData();
+  </script>
+
+</body>
+</html>

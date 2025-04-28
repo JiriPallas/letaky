@@ -24,6 +24,7 @@
   <div class="top-bar">
     <button onclick="window.location.href='index.html'">Zpět do Admin</button>
     <button onclick="generateWWW()">Generovat WWW prezentaci</button>
+    <button onclick="window.location.href='admin-data.html'">Zobrazit Data</button>
   </div>
 
   <h1>Aktivní položky</h1>
@@ -79,10 +80,10 @@
 
         const img = document.createElement('img');
         img.src = item.imageUrl;
-        img.alt = item.description;
+        img.alt = item.description || 'Obrázek';
 
         const desc = document.createElement('div');
-        desc.innerHTML = `<strong>${item.description}</strong><br>${item.category}<br><small>${item.fromDate} – ${item.toDate}</small>`;
+        desc.innerHTML = `<strong>${item.description || 'Bez popisu'}</strong><br>${item.category || 'Bez kategorie'}<br><small>${item.fromDate || ''} – ${item.toDate || ''}</small>`;
 
         const qr = document.createElement('canvas');
         qr.className = 'qr';
@@ -115,8 +116,8 @@
         shareBtn.onclick = async () => {
           if (navigator.share) {
             await navigator.share({
-              title: item.description,
-              text: item.category,
+              title: item.description || '',
+              text: item.category || '',
               url: window.location.origin + '/detail.html?id=' + item.id
             });
           } else {
@@ -131,23 +132,18 @@
           if (confirm('Opravdu archivovat tuto položku?')) {
             item.archived = true;
             await exportData();
-            alert('Položka archivována!');
-            loadData(); // Ladda om datan
+            alert('Položka byla archivována!');
+            loadData(); // Refresh data
           }
         };
 
         card.appendChild(img);
         card.appendChild(desc);
 
-        if (item.type === 'zbozi' && item.price) {
-          const price = document.createElement('div');
-          price.innerHTML = `<strong>${item.price} Kč</strong>`;
-          card.appendChild(price);
-        }
+        if (!item.type || item.type === 'letak') card.appendChild(saveBtn);
+        if (item.type === 'zbozi') card.appendChild(buyBtn);
 
         card.appendChild(qr);
-        if (item.type === 'letak') card.appendChild(saveBtn);
-        if (item.type === 'zbozi') card.appendChild(buyBtn);
         card.appendChild(shareBtn);
         card.appendChild(archiveBtn);
 
@@ -156,14 +152,13 @@
     }
 
     async function exportData() {
-      const activeUploads = uploads;
       const res = await fetch('/.netlify/functions/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uploads: activeUploads, type: 'www' })
+        body: JSON.stringify({ uploads: uploads, type: 'www' })
       });
       const result = await res.json();
-      console.log("📬 Svar från export funktionen:", result);
+      console.log("📬 Export resultat:", result);
     }
 
     async function generateWWW() {
