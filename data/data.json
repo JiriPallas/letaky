@@ -101,7 +101,7 @@
       "fromDate": "2025-04-28",
       "toDate": "2025-05-28",
       "type": "letak",
-      "archived": true
+      "archived": false
     },
     {
       "id": "ID-y8ucfkiy3",
@@ -112,7 +112,7 @@
       "toDate": "2025-05-26",
       "type": "zbozi",
       "price": "999",
-      "archived": false
+      "archived": true
     }
   ],
   "type": "data"
