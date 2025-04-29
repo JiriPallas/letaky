@@ -1,54 +1,42 @@
-// Hämta alla uploads från servern
-async function fetchUploads() {
+// data-utils.js
+
+// Spara alla uploads till Firebase
+async function saveUploadsToFirebase(uploads) {
   try {
-    const res = await fetch('../data/data.json');
-    if (!res.ok) throw new Error('Nepodařilo se načíst data.');
-    return await res.json();
-  } catch (err) {
-    console.error('Chyba při načítání dat:', err);
-    alert('Nepodařilo se načíst data.');
+    await db.ref('uploads').set(uploads);
+    console.log('Data byla úspěšně uložena!');
+    alert('Data byla úspěšně uložena!');
+  } catch (error) {
+    console.error('Chyba při ukládání dat:', error);
+    alert('Chyba při ukládání dat!');
+  }
+}
+
+// Hämta alla uploads från Firebase
+async function loadUploadsFromFirebase() {
+  try {
+    const snapshot = await db.ref('uploads').once('value');
+    const uploads = snapshot.val() || [];
+    return uploads;
+  } catch (error) {
+    console.error('Chyba při načítání dat:', error);
     return [];
   }
 }
 
-// Spara hela listan till servern
-async function saveUploads(uploads) {
+// Arkivera en post i Firebase
+async function archiveUpload(id) {
   try {
-    const res = await fetch('/.netlify/functions/export', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(uploads) // ✅ Bara en array, inte { uploads: ... }
+    const uploads = await loadUploadsFromFirebase();
+    const updatedUploads = uploads.map(upload => {
+      if (upload.id === id) {
+        return { ...upload, archived: true };
+      }
+      return upload;
     });
-
-    const result = await res.json();
-    if (!res.ok) {
-      console.error('Chyba při ukládání:', result.error);
-      alert('Chyba při ukládání dat!');
-      return false;
-    } else {
-      console.log('Data byla uložena.');
-      return true;
-    }
-  } catch (err) {
-    console.error('Chyba při ukládání:', err);
-    alert('Chyba při ukládání dat!');
-    return false;
-  }
-}
-
-// Uppdatera en viss post och spara direkt
-async function updateUpload(id, changes) {
-  const uploads = await fetchUploads();
-  const index = uploads.findIndex(u => u.id === id);
-
-  if (index !== -1) {
-    uploads[index] = { ...uploads[index], ...changes };
-    const success = await saveUploads(uploads);
-    if (success) {
-      alert('Archivace byla úspěšná!');
-      location.reload();
-    }
-  } else {
-    alert('Položka nenalezena.');
+    await saveUploadsToFirebase(updatedUploads);
+  } catch (error) {
+    console.error('Chyba při archivaci:', error);
+    alert('Chyba při archivaci!');
   }
 }
