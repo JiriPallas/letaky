@@ -47,13 +47,15 @@ let uploads = [];
 async function loadData() {
   try {
     const res = await fetch('../data/data.json');
-    uploads = await res.json();
+    const data = await res.json();
+    uploads = data.uploads || [];   // <-- Lägg märke till skillnaden!
     renderGallery();
   } catch (err) {
     console.error('Chyba při načítání dat:', err);
     document.getElementById('gallery').textContent = 'Nepodařilo se načíst položky.';
   }
 }
+
 
 function renderGallery() {
   const gallery = document.getElementById('gallery');
