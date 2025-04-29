@@ -37,7 +37,7 @@
     "description": "kaufland",
     "fromDate": "2025-04-20",
     "toDate": "2025-07-03",
-    "archived": false
+    "archived": true
   },
   {
     "id": "ID-uwhosq7d6",
@@ -100,7 +100,7 @@
     "fromDate": "2025-04-28",
     "toDate": "2025-05-28",
     "type": "letak",
-    "archived": false
+    "archived": true
   },
   {
     "id": "ID-y8ucfkiy3",
@@ -111,6 +111,6 @@
     "toDate": "2025-05-26",
     "type": "zbozi",
     "price": "999",
-    "archived": false
+    "archived": true
   }
 ]
