@@ -51,7 +51,7 @@ exports.handler = async (event) => {
     if (putResponse.ok) {
       return {
         statusCode: 200,
-        body: JSON.stringify({ message: 'Data uložena na GitHubu!' }),
+        body: JSON.stringify({ message: 'Data uložena na GitHub! ' }),
       };
     } else {
       const errorText = await putResponse.text();
