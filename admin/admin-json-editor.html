@@ -3,100 +3,92 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JSON Editor</title>
+  <title>Admin - Editace dat (JSON)</title>
+  <script src="data-utils.js"></script> <!-- Viktigt att koppla -->
   <style>
-    body { font-family: sans-serif; margin: 2rem; background: #eef; }
-    h1 { text-align: center; margin-bottom: 1rem; }
-    textarea { width: 100%; height: 500px; font-family: monospace; font-size: 0.9rem; padding: 1rem; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
-    .buttons { text-align: center; margin-top: 1rem; }
-    button { margin: 0.5rem; padding: 0.5rem 1.5rem; font-size: 1rem; background: #0077cc; color: white; border: none; border-radius: 5px; cursor: pointer; }
-    #message { text-align: center; margin-top: 1rem; font-weight: bold; }
-    .error { color: red; }
-    .success { color: green; }
+    body { font-family: sans-serif; padding: 2rem; background: #f9f9f9; }
+    h1 { text-align: center; margin-bottom: 2rem; }
+    textarea {
+      width: 100%;
+      height: 500px;
+      padding: 1rem;
+      font-family: monospace;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      resize: vertical;
+    }
+    .buttons {
+      text-align: center;
+      margin: 2rem 0;
+    }
+    .buttons button {
+      padding: 0.8rem 1.5rem;
+      margin: 0 1rem;
+      font-size: 1rem;
+      background: #0077cc;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .buttons button.secondary {
+      background: #777;
+    }
   </style>
 </head>
 <body>
 
-  <h1>Editace dat (data.json)</h1>
+<h1>Editace Databáze (JSON)</h1>
 
-  <textarea id="jsonArea">Načítání...</textarea>
+<div class="buttons">
+  <button onclick="goBack()" class="secondary">Zpět do Admin</button>
+  <button onclick="saveData()">Uložit na Server</button>
+</div>
 
-  <div class="buttons">
-    <button onclick="validateJson()">Validovat JSON</button>
-    <button onclick="saveJson()">Uložit na server</button>
-    <button onclick="formatJson()">Formátovat JSON</button>
-    <button onclick="window.location.href='admin-bilder.html'">Zpět na Admin</button>
-  </div>
+<textarea id="editor"></textarea>
 
-  <div id="message"></div>
+<div class="buttons">
+  <button onclick="saveData()">Uložit na Server</button>
+</div>
 
-  <script>
-    async function loadJson() {
-      try {
-        const res = await fetch('../data/data.json');
-        const data = await res.json();
-        document.getElementById('jsonArea').value = JSON.stringify(data, null, 2);
-      } catch (err) {
-        document.getElementById('jsonArea').value = 'Chyba při načítání dat.';
-      }
+<script>
+// Ladda och visa befintlig data
+async function loadData() {
+  const uploads = await fetchUploads();
+  document.getElementById('editor').value = JSON.stringify(uploads, null, 2);
+}
+
+// Spara data från textarea till server
+async function saveData() {
+  try {
+    const textarea = document.getElementById('editor');
+    const parsed = JSON.parse(textarea.value);
+
+    if (!Array.isArray(parsed)) {
+      alert('Data musí být pole objektů!');
+      return;
     }
 
-    function validateJson() {
-      const area = document.getElementById('jsonArea');
-      const message = document.getElementById('message');
-      try {
-        const data = JSON.parse(area.value);
-
-        if (JSON.stringify(data).includes(": null")) {
-          message.innerHTML = `<span class="error">JSON obsahuje hodnoty null!</span>`;
-          return false;
-        }
-
-        message.innerHTML = `<span class="success">✅ JSON je platný!</span>`;
-        return true;
-      } catch (err) {
-        message.innerHTML = `<span class="error">Neplatný JSON: ${err.message}</span>`;
-        return false;
-      }
+    const success = await saveUploads(parsed);
+    if (success) {
+      alert('Data byla úspěšně uložena.');
+      window.location.href = 'admin-bilder.html'; // gå tillbaks till admin-bilder
     }
+  } catch (err) {
+    console.error('Chyba při parsování JSON:', err);
+    alert('Chybný formát JSON!');
+  }
+}
 
-    async function saveJson() {
-      if (!validateJson()) {
-        alert("Neplatný JSON! Opravte chyby před uložením.");
-        return;
-      }
+// Gå tillbaka till admin
+function goBack() {
+  window.location.href = 'index.html';
+}
 
-      const data = JSON.parse(document.getElementById('jsonArea').value);
-
-      const res = await fetch('/.netlify/functions/export', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uploads: data, type: 'data' })   // <-- type: 'data'
-      });
-
-      const result = await res.json();
-
-      if (res.ok) {
-        document.getElementById('message').innerHTML = `<span class="success">✅ Data byla uložena!</span>`;
-        alert('Data byla exportována.');
-      } else {
-        document.getElementById('message').innerHTML = `<span class="error">Chyba: ${result.error}</span>`;
-        alert('Chyba při ukládání.');
-      }
-    }
-
-    function formatJson() {
-      try {
-        const area = document.getElementById('jsonArea');
-        const data = JSON.parse(area.value);
-        area.value = JSON.stringify(data, null, 2);
-      } catch (err) {
-        alert('Nelze formátovat – JSON není platný.');
-      }
-    }
-
-    loadJson();
-  </script>
+// Start
+loadData();
+</script>
 
 </body>
 </html>

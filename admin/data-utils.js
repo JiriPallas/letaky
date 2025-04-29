@@ -1,25 +1,23 @@
-// data-utils.js
-
-// Läser aktuell data.json från servern
+// Hämta alla uploads från servern
 async function fetchUploads() {
   try {
-    const res = await fetch('../data/data.json?no-cache=' + Date.now());
-    const uploads = await res.json();
-    return uploads;
+    const res = await fetch('../data/data.json');
+    if (!res.ok) throw new Error('Nepodařilo se načíst data.');
+    return await res.json();
   } catch (err) {
     console.error('Chyba při načítání dat:', err);
-    alert('Nepodařilo se načíst data ze serveru.');
+    alert('Nepodařilo se načíst data.');
     return [];
   }
 }
 
-// Sparar ny version av uploads till servern
+// Spara hela listan till servern
 async function saveUploads(uploads) {
   try {
     const res = await fetch('/.netlify/functions/export', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(uploads)
+      body: JSON.stringify(uploads) // ✅ Bara en array, inte { uploads: ... }
     });
 
     const result = await res.json();
@@ -31,30 +29,26 @@ async function saveUploads(uploads) {
       console.log('Data byla uložena.');
       return true;
     }
-  } catch (error) {
-    console.error('Chyba při spojení se serverem:', error);
-    alert('Chyba při spojení se serverem.');
+  } catch (err) {
+    console.error('Chyba při ukládání:', err);
+    alert('Chyba při ukládání dat!');
     return false;
   }
 }
 
-// Skapar nytt objekt och sparar
-async function insertUpload(newUpload) {
-  const uploads = await fetchUploads();
-  uploads.push(newUpload);
-  const success = await saveUploads(uploads);
-  if (success) location.reload();
-}
-
-// Uppdaterar befintligt objekt och sparar
+// Uppdatera en viss post och spara direkt
 async function updateUpload(id, changes) {
   const uploads = await fetchUploads();
-  const index = uploads.findIndex(item => item.id === id);
+  const index = uploads.findIndex(u => u.id === id);
+
   if (index !== -1) {
     uploads[index] = { ...uploads[index], ...changes };
     const success = await saveUploads(uploads);
-    if (success) location.reload();
+    if (success) {
+      alert('Archivace byla úspěšná!');
+      location.reload();
+    }
   } else {
-    alert('Položka nebyla nalezena.');
+    alert('Položka nenalezena.');
   }
 }
