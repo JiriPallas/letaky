@@ -111,6 +111,6 @@
     "toDate": "2025-05-26",
     "type": "zbozi",
     "price": "999",
-    "archived": false
+    "archived": true
   }
 ]
