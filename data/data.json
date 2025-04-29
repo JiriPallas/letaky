@@ -8,7 +8,7 @@
       "description": "Lidl strudl",
       "fromDate": "2025-04-20",
       "toDate": "2025-07-06",
-      "archived": true
+      "archived": false
     },
     {
       "id": "ID-fwpp6hot5",
@@ -101,7 +101,7 @@
       "fromDate": "2025-04-28",
       "toDate": "2025-05-28",
       "type": "letak",
-      "archived": false
+      "archived": true
     },
     {
       "id": "ID-y8ucfkiy3",
