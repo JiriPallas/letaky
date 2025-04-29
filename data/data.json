@@ -8,7 +8,7 @@
       "description": "Lidl strudl",
       "fromDate": "2025-04-20",
       "toDate": "2025-07-06",
-      "archived": true
+      "archived": false
     },
     {
       "id": "ID-fwpp6hot5",
@@ -18,7 +18,7 @@
       "description": "Penny lane ",
       "fromDate": "2025-04-20",
       "toDate": "2025-06-30",
-      "archived": true
+      "archived": false
     },
     {
       "id": "ID-gzqm6lmcr",
@@ -28,7 +28,7 @@
       "description": "Billa",
       "fromDate": "2025-04-20",
       "toDate": "2025-06-29",
-      "archived": true
+      "archived": false
     },
     {
       "id": "ID-6q5dmugod",
