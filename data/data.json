@@ -7,7 +7,7 @@
     "description": "Lidl strudl",
     "fromDate": "2025-04-20",
     "toDate": "2025-07-06",
-    "archived": true
+    "archived": false
   },
   {
     "id": "ID-fwpp6hot5",
@@ -47,7 +47,7 @@
     "description": "kola",
     "fromDate": "2025-04-27",
     "toDate": "2026-02-21",
-    "archived": true
+    "archived": false
   },
   {
     "id": "ID-azvtx0mkj",
@@ -100,7 +100,7 @@
     "fromDate": "2025-04-28",
     "toDate": "2025-05-28",
     "type": "letak",
-    "archived": true
+    "archived": false
   },
   {
     "id": "ID-y8ucfkiy3",
@@ -111,6 +111,6 @@
     "toDate": "2025-05-26",
     "type": "zbozi",
     "price": "999",
-    "archived": true
+    "archived": false
   }
 ]
