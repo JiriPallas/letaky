@@ -58,7 +58,7 @@
     "description": "mums",
     "fromDate": "2025-04-27",
     "toDate": "2025-05-30",
-    "archived": true
+    "archived": false
   },
   {
     "id": "ID-vvnhg91ed",
@@ -111,6 +111,6 @@
     "toDate": "2025-05-26",
     "type": "zbozi",
     "price": "999",
-    "archived": false
+    "archived": true
   }
 ]
