@@ -4,46 +4,41 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin panel</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyCFlTsn1ESQddd_7Neq-W6LBGRiT92c-5w",
-    authDomain: "letaky-aa6ab.firebaseapp.com",
-    projectId: "letaky-aa6ab",
-    storageBucket: "letaky-aa6ab.firebasestorage.app",
-    messagingSenderId: "814346215288",
-    appId: "1:814346215288:web:445f9700dac9b81cd8f28d",
-    databaseURL: "https://letaky-aa6ab-default-rtdb.europe-west1.firebasedatabase.app/"
-  };
-
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
-</script>
-
-  <script src="data-utils.js"></script> <!-- OBS! -->
   <style>
     body { font-family: sans-serif; padding: 2rem; background: #f7f7f7; }
-    form { max-width: 700px; margin: auto; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    form, .seznam { max-width: 700px; margin: auto; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
     input, textarea, select { width: 100%; margin-bottom: 1rem; padding: 0.5rem; font-size: 1rem; }
-    button { padding: 0.5rem 1rem; font-size: 1rem; }
+    button { padding: 0.5rem 1rem; font-size: 1rem; margin-right: 0.5rem; }
+    .polozka { border: 1px solid #ddd; margin: 1rem 0; padding: 1rem; border-radius: 5px; background: #fafafa; }
+    img { max-width: 100%; height: auto; margin-top: 0.5rem; border-radius: 4px; }
   </style>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCFlTsn1ESQddd_7Neq-W6LBGRiT92c-5w",
+      authDomain: "letaky-aa6ab.firebaseapp.com",
+      projectId: "letaky-aa6ab",
+      storageBucket: "letaky-aa6ab.firebasestorage.app",
+      messagingSenderId: "814346215288",
+      appId: "1:814346215288:web:445f9700dac9b81cd8f28d",
+      databaseURL: "https://letaky-aa6ab-default-rtdb.europe-west1.firebasedatabase.app/"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+  </script>
+  <script src="data-utils.js"></script>
 </head>
 <body>
+
   <h1>Admin panel</h1>
 
   <form id="uploadForm">
-    <label>Typ položky:</label><br>
-    <label><input type="radio" name="type" value="letak" checked> Leták</label>
-    <label><input type="radio" name="type" value="zbozi"> Zboží</label>
-
-    <label for="imageUrl">Adresa obrázku / videa (URL)</label>
-    <input type="url" id="imageUrl" required placeholder="https://...">
-
-    <label for="category">Kategorie</label>
+    <input type="url" id="imageUrl" required placeholder="Adresa obrázku (https://...)">
     <select id="category" required>
-      <option value="">-- Vyberte --</option>
+      <option value="">-- Kategorie --</option>
       <option>Potraviny</option>
       <option>Motorová vozidla</option>
       <option>Bydlení</option>
@@ -52,41 +47,24 @@
       <option>Elektronika</option>
       <option>Ostatní</option>
     </select>
-
-    <div id="priceField" style="display: none;">
-      <label for="price">Cena (Kč)</label>
-      <input type="number" id="price" min="0">
-    </div>
-
-    <label for="description">Popis</label>
-    <textarea id="description" required></textarea>
-
-    <label for="fromDate">Zobrazit od</label>
+    <input type="text" id="description" required placeholder="Popis">
     <input type="date" id="fromDate" required>
-
-    <label for="toDate">Zobrazit do</label>
     <input type="date" id="toDate" required>
-
     <button type="submit">Uložit</button>
   </form>
 
+  <div class="seznam" id="seznam"></div>
+
   <script>
     const form = document.getElementById('uploadForm');
-    const priceField = document.getElementById('priceField');
+    const seznam = document.getElementById('seznam');
 
-    document.querySelectorAll('input[name="type"]').forEach(radio => {
-      radio.addEventListener('change', () => {
-        priceField.style.display = (document.querySelector('input[name="type"]:checked').value === 'zbozi') ? 'block' : 'none';
-      });
-    });
-
-    form.addEventListener('submit', async e => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const uploads = await loadUploadsFromFirebase();
       const id = 'ID-' + Math.random().toString(36).substr(2, 9);
-
       const entry = {
         id,
-        type: document.querySelector('input[name="type"]:checked').value,
         imageUrl: document.getElementById('imageUrl').value,
         category: document.getElementById('category').value,
         description: document.getElementById('description').value,
@@ -94,13 +72,28 @@
         toDate: document.getElementById('toDate').value,
         archived: false
       };
-
-      if (entry.type === 'zbozi') {
-        entry.price = parseInt(document.getElementById('price').value) || 0;
-      }
-
-      await insertUpload(entry);
+      uploads.push(entry);
+      await saveUploadsToFirebase(uploads);
+      form.reset();
+      loadUploads();
     });
+
+    async function loadUploads() {
+      const uploads = await loadUploadsFromFirebase();
+      seznam.innerHTML = '';
+      uploads.forEach(upload => {
+        const div = document.createElement('div');
+        div.className = 'polozka';
+        div.innerHTML = `
+          <img src="${upload.imageUrl}" alt="">
+          <p><strong>${upload.category}</strong> – ${upload.description}</p>
+        `;
+        seznam.appendChild(div);
+      });
+    }
+
+    loadUploads();
   </script>
+
 </body>
 </html>
