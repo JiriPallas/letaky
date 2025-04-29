@@ -48,7 +48,7 @@ async function loadData() {
   try {
     const res = await fetch('../data/data.json');
     const data = await res.json();
-    uploads = data.uploads || [];   // <-- Lägg märke till skillnaden!
+    uploads = data.uploads || [];   // <-- Lägg märke till skillnaden!   
     renderGallery();
   } catch (err) {
     console.error('Chyba při načítání dat:', err);
