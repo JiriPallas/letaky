@@ -8,7 +8,7 @@
       "description": "Lidl strudl",
       "fromDate": "2025-04-20",
       "toDate": "2025-07-06",
-      "archived": false
+      "archived": true
     },
     {
       "id": "ID-fwpp6hot5",
@@ -114,6 +114,5 @@
       "price": "999",
       "archived": true
     }
-  ],
-  "type": "data"
+  ]
 }
