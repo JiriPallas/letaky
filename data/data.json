@@ -37,7 +37,7 @@
     "description": "kaufland",
     "fromDate": "2025-04-20",
     "toDate": "2025-07-03",
-    "archived": true
+    "archived": false
   },
   {
     "id": "ID-uwhosq7d6",
@@ -47,7 +47,7 @@
     "description": "kola",
     "fromDate": "2025-04-27",
     "toDate": "2026-02-21",
-    "archived": false
+    "archived": true
   },
   {
     "id": "ID-azvtx0mkj",
