@@ -6,108 +6,63 @@
   <title>Archivované položky</title>
   <style>
     body { font-family: sans-serif; padding: 2rem; background: #f4f4f4; }
-    h1 { text-align: center; margin-bottom: 1rem; }
-    .controls { text-align: center; margin-bottom: 2rem; }
-    .grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1rem; }
+    h1 { text-align: center; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 2rem; }
     .card {
-      background: white;
-      padding: 0.5rem;
-      border-radius: 8px;
-      box-shadow: 0 0 5px rgba(0,0,0,0.1);
-      text-align: center;
-      font-size: 0.9rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      background: white; padding: 1rem; border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1); text-align: center;
     }
-    img {
-      max-width: 100%;
-      height: 80px;
-      object-fit: cover;
-      margin-bottom: 0.5rem;
-      border-radius: 4px;
-    }
-    button {
-      margin: 0.3rem;
-      padding: 0.3rem 0.6rem;
-      font-size: 0.8rem;
-      cursor: pointer;
-    }
-    .info {
-      font-size: 0.75rem;
-      margin: 0.3rem 0;
-    }
-    select {
-      padding: 0.5rem;
-      font-size: 1rem;
-    }
-    .top-bar {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
-    .top-bar button {
-      padding: 0.5rem 1rem;
-      font-size: 1rem;
-      margin-bottom: 1rem;
-      background: #0077cc;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
+    img { max-width: 100%; height: 120px; object-fit: cover; margin-bottom: 0.5rem; border-radius: 4px; }
+    .info { font-size: 0.8rem; color: #333; }
   </style>
-</head>
-<body>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
 
-  <div class="top-bar">
-    <button onclick="window.location.href='admin-bilder.html'">Zpět na aktivní položky</button>
-  </div>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCFlTsn1ESQddd_7Neq-W6LBGRiT92c-5w",
+      authDomain: "letaky-aa6ab.firebaseapp.com",
+      projectId: "letaky-aa6ab",
+      storageBucket: "letaky-aa6ab.appspot.com",
+      messagingSenderId: "814346215288",
+      appId: "1:814346215288:web:445f9700dac9b81cd8f28d",
+      databaseURL: "https://letaky-aa6ab-default-rtdb.europe-west1.firebasedatabase.app/"
+    };
 
-  <h1>Archivované položky</h1>
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-  <div class="grid" id="gallery"></div>
-
-  <script>
     const gallery = document.getElementById('gallery');
-    const uploads = JSON.parse(localStorage.getItem('adminUploads') || '[]');
 
-    function renderGallery(items) {
-      gallery.innerHTML = '';
-      items.forEach(item => {
-        const card = document.createElement('div');
-        card.className = 'card';
-
-        const img = document.createElement('img');
-        img.src = item.imageUrl;
-        img.alt = item.description;
-
-        const info = document.createElement('div');
-        info.className = 'info';
-        info.innerHTML = `
-          <strong>${item.category}</strong><br>
-          ${item.type === 'zbozi' && item.price ? `Cena: ${item.price} Kč<br>` : ''}
-          ${item.fromDate} – ${item.toDate}
-        `;
-
-        const viewBtn = document.createElement('button');
-        viewBtn.textContent = 'Náhled';
-        viewBtn.onclick = () => window.open(item.imageUrl, '_blank');
-
-        card.appendChild(img);
-        card.appendChild(info);
-        card.appendChild(viewBtn);
-
-        gallery.appendChild(card);
-      });
-    }
-
-    function loadArchived() {
-      let archivedUploads = uploads.filter(item => item.archived);
-      renderGallery(archivedUploads);
+    async function loadArchived() {
+      const snapshot = await get(ref(db, "uploads"));
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        gallery.innerHTML = '';
+        Object.values(data)
+          .filter(item => item.archived === true)
+          .forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'card';
+            div.innerHTML = `
+              <img src="${item.imageUrl}" alt="${item.description}">
+              <div class="info">
+                <strong>${item.description}</strong><br>
+                ${item.category}<br>
+                ${item.fromDate} – ${item.toDate}
+              </div>`;
+            gallery.appendChild(div);
+          });
+      } else {
+        gallery.textContent = 'Žádná archivovaná položka.';
+      }
     }
 
     loadArchived();
   </script>
-
+</head>
+<body>
+  <h1>Archivované položky</h1>
+  <div class="grid" id="gallery">Načítání...</div>
 </body>
 </html>

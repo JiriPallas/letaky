@@ -1,95 +1,63 @@
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Editor JSON</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Editace JSON</title>
   <style>
-    body { font-family: sans-serif; padding: 2rem; background: #f4f4f4; }
-    textarea { width: 100%; height: 400px; padding: 1rem; font-family: monospace; font-size: 1rem; }
-    button { margin: 0.5rem 0.5rem 0.5rem 0; padding: 0.5rem 1rem; font-size: 1rem; }
-    .top-bar { margin-bottom: 1rem; }
-    .status { margin-top: 1rem; padding: 0.5rem; border-radius: 5px; display: none; }
-    .success { background: #c8f7c5; color: #2d572c; }
-    .error { background: #f7c5c5; color: #8a1c1c; }
+    body { font-family: monospace; padding: 2rem; background: #f0f0f0; }
+    textarea { width: 100%; height: 500px; font-size: 0.9rem; margin-bottom: 1rem; }
+    button { padding: 0.5rem 1rem; margin-right: 1rem; }
   </style>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCFlTsn1ESQddd_7Neq-W6LBGRiT92c-5w",
+      authDomain: "letaky-aa6ab.firebaseapp.com",
+      projectId: "letaky-aa6ab",
+      storageBucket: "letaky-aa6ab.appspot.com",
+      messagingSenderId: "814346215288",
+      appId: "1:814346215288:web:445f9700dac9b81cd8f28d",
+      databaseURL: "https://letaky-aa6ab-default-rtdb.europe-west1.firebasedatabase.app/"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const dbRef = ref(db, "uploads");
+
+    const textarea = document.getElementById("editor");
+    const status = document.getElementById("status");
+
+    async function loadData() {
+      const snapshot = await get(dbRef);
+      if (snapshot.exists()) {
+        textarea.value = JSON.stringify(snapshot.val(), null, 2);
+      } else {
+        textarea.value = "{}";
+      }
+    }
+
+    async function saveData() {
+      try {
+        const data = JSON.parse(textarea.value);
+        await set(dbRef, data);
+        status.textContent = "✅ Data byla úspěšně uložena.";
+      } catch (e) {
+        status.textContent = "❌ Chyba: Neplatný JSON.";
+      }
+    }
+
+    window.onload = loadData;
+    window.saveData = saveData;
+  </script>
 </head>
 <body>
-
-<h1>Editor datového souboru</h1>
-
-<div class="top-bar">
-  <button onclick="beautifyJson()">Srovnat JSON</button>
-  <button onclick="validateJson()">Zkontrolovat JSON</button>
-  <button onclick="saveData()">Uložit na server</button>
-  <button onclick="window.location.href='admin-bilder.html'">Zpět na Admin</button>
-</div>
-
-<textarea id="editor"></textarea>
-
-<div id="status" class="status"></div>
-
-<script>
-async function loadData() {
-  try {
-    const res = await fetch('../data/data.json');
-    const json = await res.json();
-    document.getElementById('editor').value = JSON.stringify(json, null, 2);
-  } catch (err) {
-    alert('Nepodařilo se načíst data.');
-  }
-}
-
-function beautifyJson() {
-  try {
-    const editor = document.getElementById('editor');
-    const parsed = JSON.parse(editor.value);
-    editor.value = JSON.stringify(parsed, null, 2);
-  } catch (err) {
-    alert('Neplatný JSON - nelze srovnat!');
-  }
-}
-
-function validateJson() {
-  try {
-    JSON.parse(document.getElementById('editor').value);
-    showStatus('JSON je platný!', 'success');
-  } catch (err) {
-    showStatus('JSON není platný: ' + err.message, 'error');
-  }
-}
-
-async function saveData() {
-  try {
-    const json = JSON.parse(document.getElementById('editor').value);
-
-    const res = await fetch('/.netlify/functions/export', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uploads: json.uploads, type: 'data' })
-    });
-
-    const result = await res.json();
-
-    if (res.ok) {
-      showStatus('Data byla úspěšně uložena!', 'success');
-    } else {
-      showStatus('Chyba při ukládání: ' + (result.error || 'Neznámá chyba'), 'error');
-    }
-  } catch (err) {
-    showStatus('Chyba: ' + err.message, 'error');
-  }
-}
-
-function showStatus(message, type) {
-  const status = document.getElementById('status');
-  status.className = 'status ' + type;
-  status.textContent = message;
-  status.style.display = 'block';
-}
-
-loadData();
-</script>
-
+  <h1>Editace JSON z Firebase</h1>
+  <textarea id="editor"></textarea><br>
+  <button onclick="saveData()">💾 Uložit na server</button>
+  <button onclick="location.href='index.html'">⬅️ Zpět do Admin</button>
+  <div id="status"></div>
 </body>
 </html>
