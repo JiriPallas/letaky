@@ -4,67 +4,55 @@ exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
-      body: JSON.stringify({ error: 'Použijte POST' }),
+      body: JSON.stringify({ error: 'Použijte POST' })
     };
   }
 
-  try {
-    const uploads = JSON.parse(event.body);
+  const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+  const repo = "JiriPallas/letaky";
+  const path = event.queryStringParameters && event.queryStringParameters.type === 'www' ? "data/www.json" : "data/data.json";
+  const branch = "main";
+  const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}`;
 
-    const repo = "JiriPallas/letaky";  // Justera om du ändrat repo
-    const path = "data/data.json";      // Eller "data/www.json" vid www-export
-    const branch = "main";
-    const githubToken = process.env.GITHUB_TOKEN;
+  const data = JSON.parse(event.body);
 
-    const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}`;
+  const newContent = Buffer.from(JSON.stringify(data, null, 2)).toString('base64');
 
-    // Hämta befintligt SHA
-    const getResponse = await fetch(apiUrl, {
-      headers: {
-        Authorization: `Bearer ${githubToken}`,
-        Accept: "application/vnd.github.v3+json"
-      }
-    });
+  const current = await fetch(apiUrl, {
+    headers: { Authorization: `Bearer ${GITHUB_TOKEN}` }
+  });
 
-    let sha = null;
-    if (getResponse.ok) {
-      const json = await getResponse.json();
-      sha = json.sha;
-    }
+  let sha = null;
+  if (current.ok) {
+    const currentData = await current.json();
+    sha = currentData.sha;
+  }
 
-    // Spara ny version
-    const putResponse = await fetch(apiUrl, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${githubToken}`,
-        Accept: "application/vnd.github.v3+json",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        message: "Automatický export dat z adminu",
-        content: Buffer.from(JSON.stringify(uploads, null, 2)).toString('base64'),
-        branch,
-        sha
-      })
-    });
+  const response = await fetch(apiUrl, {
+    method: "PUT",
+    headers: {
+      "Authorization": `Bearer ${GITHUB_TOKEN}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      message: "Automatický export dat",
+      content: newContent,
+      branch: branch,
+      sha: sha
+    })
+  });
 
-    if (putResponse.ok) {
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ message: 'Data uložena na GitHub!' }),
-      };
-    } else {
-      const errorText = await putResponse.text();
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: errorText }),
-      };
-    }
-  } catch (err) {
-    console.error("Server error:", err);
+  if (response.ok) {
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ message: "Export OK" })
+    };
+  } else {
+    const error = await response.text();
+    console.error("GitHub API-fel:", error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Serverová chyba při zpracování dat.' }),
+      body: JSON.stringify({ error: error || "Neznámá chyba" })
     };
   }
 };
