@@ -1,9 +1,9 @@
-<!-- admin/index.html -->
+<!-- admin/index.html v1.0 -->
 <!DOCTYPE html>
 <html lang="cs">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin Panel</title>
   <script type="module" src="./firebase-admin.js"></script>
   <style>
@@ -12,6 +12,28 @@
     input, textarea, select { width: 100%; margin-bottom: 1rem; padding: 0.5rem; font-size: 1rem; }
     label { font-weight: bold; margin-top: 1rem; display: block; }
     button { padding: 0.5rem 1rem; font-size: 1rem; }
+    #snackbar {
+      visibility: hidden;
+      min-width: 250px;
+      margin-left: -125px;
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 2px;
+      padding: 16px;
+      position: fixed;
+      z-index: 1;
+      left: 50%;
+      bottom: 30px;
+      font-size: 17px;
+    }
+    #snackbar.show {
+      visibility: visible;
+      -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;
+      animation: fadein 0.5s, fadeout 0.5s 2.5s;
+    }
+    @keyframes fadein { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
+    @keyframes fadeout { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
   </style>
 </head>
 <body>
@@ -19,18 +41,18 @@
 
   <form id="uploadForm">
     <label for="imageUrl">Adresa obrázku</label>
-    <input type="url" id="imageUrl" required>
+    <input type="url" id="imageUrl" value="https://via.placeholder.com/300" required>
 
     <label for="category">Kategorie</label>
     <select id="category" required>
       <option value="">-- Vyberte --</option>
+      <option selected>Ostatní</option>
       <option>Potraviny</option>
       <option>Motorová vozidla</option>
       <option>Bydlení</option>
       <option>Šaty</option>
       <option>Sportovní potřeby</option>
       <option>Elektronika</option>
-      <option>Ostatní</option>
     </select>
 
     <label>Typ položky</label>
@@ -43,7 +65,7 @@
     </div>
 
     <label for="description">Popis</label>
-    <textarea id="description" required></textarea>
+    <textarea id="description" required>Bez popisu</textarea>
 
     <label for="fromDate">Zobrazit od</label>
     <input type="date" id="fromDate" required>
@@ -54,12 +76,13 @@
     <button type="submit">Uložit</button>
   </form>
 
+  <div id="snackbar">Záznam uložen!</div>
+
   <script type="module">
     import { db, pushData, isValidItem } from './firebase-admin.js';
-    import { getDatabase, ref } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-    const typeRadios = document.getElementsByName('type');
     const priceWrapper = document.getElementById('priceWrapper');
+    const typeRadios = document.getElementsByName('type');
     typeRadios.forEach(r => r.addEventListener('change', () => {
       priceWrapper.style.display = document.querySelector('input[name="type"]:checked').value === 'zbozi' ? 'block' : 'none';
     }));
@@ -73,31 +96,39 @@
     }
     setDefaultDates();
 
+    function showSnackbar(msg = "Záznam uložen!") {
+      const snackbar = document.getElementById("snackbar");
+      snackbar.textContent = msg;
+      snackbar.className = "show";
+      setTimeout(() => snackbar.className = snackbar.className.replace("show", ""), 3000);
+    }
+
     document.getElementById('uploadForm').addEventListener('submit', async e => {
       e.preventDefault();
       const item = {
         imageUrl: document.getElementById('imageUrl').value,
         category: document.getElementById('category').value,
+        type: document.querySelector('input[name="type"]:checked').value,
+        price: parseFloat(document.getElementById('price').value) || 0,
         description: document.getElementById('description').value,
         fromDate: document.getElementById('fromDate').value,
-        toDate: document.getElementById('toDate').value,
-        type: document.querySelector('input[name="type"]:checked').value,
-        archived: false
+        toDate: document.getElementById('toDate').value
       };
-      if (item.type === 'zbozi') {
-        item.price = parseInt(document.getElementById('price').value);
-      }
 
       if (!isValidItem(item)) {
-        alert("Vyplňte všechna pole!");
+        showSnackbar("Chybná data! Zkontrolujte vstupy.");
         return;
       }
 
-      await pushData(item);
-      alert("Data uložena!");
-      document.getElementById('uploadForm').reset();
-      setDefaultDates();
-      priceWrapper.style.display = 'none';
+      try {
+        await pushData(item);
+        showSnackbar();
+        document.getElementById('uploadForm').reset();
+        setDefaultDates();
+      } catch (err) {
+        console.error(err);
+        showSnackbar("Nepodařilo se uložit.");
+      }
     });
   </script>
 </body>
