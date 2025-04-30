@@ -6,21 +6,18 @@
   <title>Admin - Nová položka</title>
   <style>
     body { font-family: sans-serif; padding: 2rem; background: #f4f4f4; }
-    form { max-width: 600px; margin: auto; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
+    form { max-width: 600px; margin: auto; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
     input, textarea, select { width: 100%; margin-bottom: 1rem; padding: 0.5rem; font-size: 1rem; }
     label { font-weight: bold; }
-    .preview { max-width: 600px; margin: 2rem auto; text-align: center; }
-    img { max-width: 100%; border-radius: 5px; }
+    button { padding: 0.5rem 1rem; font-size: 1rem; }
   </style>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 </head>
 <body>
 
 <h1>Nová položka</h1>
 
 <form id="uploadForm">
-  <label for="imageUrl">Adresa obrázku</label>
+  <label for="imageUrl">Obrázek (URL)</label>
   <input type="url" id="imageUrl" required>
 
   <label for="category">Kategorie</label>
@@ -39,10 +36,8 @@
   <label><input type="radio" name="type" value="letak" checked> Leták</label>
   <label><input type="radio" name="type" value="zbozi"> Zboží</label>
 
-  <div id="priceWrapper" style="display:none;">
-    <label for="price">Cena (Kč)</label>
-    <input type="number" id="price" min="0">
-  </div>
+  <label for="price" id="priceLabel" style="display:none;">Cena (Kč)</label>
+  <input type="number" id="price" min="0" style="display:none;">
 
   <label for="description">Popis</label>
   <textarea id="description" required></textarea>
@@ -50,87 +45,100 @@
   <label for="fromDate">Zobrazit od</label>
   <input type="date" id="fromDate" required>
 
+  <label for="duration">Počet dní zobrazení</label>
+  <input type="number" id="duration" value="30" min="1" required>
+
   <label for="toDate">Zobrazit do</label>
   <input type="date" id="toDate" required>
 
   <button type="submit">Uložit</button>
 </form>
 
-<div class="preview" id="previewContainer"></div>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+  import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
 
-<script>
-  // 🔥 Firebase config
   const firebaseConfig = {
     apiKey: "AIzaSyCFlTsn1ESQddd_7Neq-W6LBGRiT92c-5w",
     authDomain: "letaky-aa6ab.firebaseapp.com",
-    databaseURL: "https://letaky-aa6ab-default-rtdb.europe-west1.firebasedatabase.app",
     projectId: "letaky-aa6ab",
+    databaseURL: "https://letaky-aa6ab-default-rtdb.europe-west1.firebasedatabase.app",
     storageBucket: "letaky-aa6ab.appspot.com",
     messagingSenderId: "814346215288",
     appId: "1:814346215288:web:445f9700dac9b81cd8f28d"
   };
 
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
 
-  const form = document.getElementById("uploadForm");
-  const priceWrapper = document.getElementById("priceWrapper");
-  const previewContainer = document.getElementById("previewContainer");
+  const fromDateInput = document.getElementById("fromDate");
+  const toDateInput = document.getElementById("toDate");
+  const durationInput = document.getElementById("duration");
 
-  // Visa prisfält om zbozi
-  form.type.forEach(radio => {
+  function setDefaultDates() {
+    const today = new Date();
+    fromDateInput.value = today.toISOString().split("T")[0];
+    updateToDate();
+  }
+
+  function updateToDate() {
+    const from = new Date(fromDateInput.value);
+    const days = parseInt(durationInput.value);
+    if (!isNaN(from.getTime()) && days > 0) {
+      const to = new Date(from);
+      to.setDate(to.getDate() + days);
+      toDateInput.value = to.toISOString().split("T")[0];
+    }
+  }
+
+  fromDateInput.addEventListener("change", updateToDate);
+  durationInput.addEventListener("input", updateToDate);
+  setDefaultDates();
+
+  const typeRadios = document.getElementsByName("type");
+  const priceInput = document.getElementById("price");
+  const priceLabel = document.getElementById("priceLabel");
+
+  typeRadios.forEach(radio => {
     radio.addEventListener("change", () => {
-      priceWrapper.style.display = form.type.value === "zbozi" ? "block" : "none";
+      if (document.querySelector('input[name="type"]:checked').value === "zbozi") {
+        priceInput.style.display = "block";
+        priceLabel.style.display = "block";
+      } else {
+        priceInput.style.display = "none";
+        priceLabel.style.display = "none";
+      }
     });
   });
 
-  form.addEventListener("submit", e => {
+  document.getElementById("uploadForm").addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const type = form.type.value;
     const entry = {
-      id: "ID-" + Math.random().toString(36).substring(2, 9),
-      imageUrl: form.imageUrl.value.trim(),
-      category: form.category.value.trim(),
-      description: form.description.value.trim(),
-      fromDate: form.fromDate.value,
-      toDate: form.toDate.value,
-      type,
+      imageUrl: document.getElementById("imageUrl").value,
+      category: document.getElementById("category").value,
+      type: document.querySelector('input[name="type"]:checked').value,
+      description: document.getElementById("description").value,
+      fromDate: document.getElementById("fromDate").value,
+      toDate: document.getElementById("toDate").value,
       archived: false
     };
 
-    if (type === "zbozi") {
-      const price = parseInt(document.getElementById("price").value);
-      if (!price || price <= 0) {
-        alert("Zadejte cenu");
-        return;
-      }
-      entry.price = price;
+    if (entry.type === "zbozi") {
+      entry.price = parseInt(document.getElementById("price").value);
     }
 
-    db.ref("uploads").push(entry).then(() => {
+    try {
+      await push(ref(db, "/"), entry);
       alert("Položka byla uložena!");
-      showPreview(entry);
-      form.reset();
-      priceWrapper.style.display = "none";
-    }).catch(err => {
-      console.error("Chyba při ukládání:", err);
-      alert("Chyba při ukládání dat.");
-    });
+      e.target.reset();
+      setDefaultDates();
+      priceInput.style.display = "none";
+      priceLabel.style.display = "none";
+    } catch (err) {
+      alert("Chyba při ukládání: " + err.message);
+    }
   });
-
-  function showPreview(item) {
-    const html = `
-      <h2>Náhled uložené položky</h2>
-      <img src="${item.imageUrl}" alt="${item.description}">
-      <p><strong>${item.description}</strong></p>
-      <p>Kategorie: ${item.category}</p>
-      <p>Typ: ${item.type}</p>
-      ${item.price ? `<p>Cena: ${item.price} Kč</p>` : ""}
-      <p>Platnost: ${item.fromDate} – ${item.toDate}</p>
-    `;
-    previewContainer.innerHTML = html;
-  }
 </script>
 
 </body>
