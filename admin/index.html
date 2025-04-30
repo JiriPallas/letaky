@@ -1,26 +1,25 @@
+<!-- admin/index.html -->
 <!DOCTYPE html>
 <html lang="cs">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin panel</title>
+  <title>Admin Panel</title>
+  <script type="module" src="./firebase-admin.js"></script>
   <style>
     body { font-family: sans-serif; padding: 2rem; background: #f7f7f7; }
-    form, .preview { max-width: 700px; margin: auto; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    form { max-width: 600px; margin: auto; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
     input, textarea, select { width: 100%; margin-bottom: 1rem; padding: 0.5rem; font-size: 1rem; }
+    label { font-weight: bold; margin-top: 1rem; display: block; }
     button { padding: 0.5rem 1rem; font-size: 1rem; }
-    img { max-width: 100%; margin-top: 1rem; border-radius: 4px; }
   </style>
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-database-compat.js"></script>
 </head>
 <body>
-  <h1>Admin - Přidat položku</h1>
+  <h1>Nový záznam</h1>
 
   <form id="uploadForm">
     <label for="imageUrl">Adresa obrázku</label>
-    <input type="url" id="imageUrl" required placeholder="https://...">
+    <input type="url" id="imageUrl" required>
 
     <label for="category">Kategorie</label>
     <select id="category" required>
@@ -38,9 +37,9 @@
     <label><input type="radio" name="type" value="letak" checked> Leták</label>
     <label><input type="radio" name="type" value="zbozi"> Zboží</label>
 
-    <div id="priceField" style="display: none;">
+    <div id="priceWrapper" style="display:none;">
       <label for="price">Cena (Kč)</label>
-      <input type="number" id="price" min="1" />
+      <input type="number" id="price" min="0">
     </div>
 
     <label for="description">Popis</label>
@@ -55,91 +54,50 @@
     <button type="submit">Uložit</button>
   </form>
 
-  <div class="preview" id="preview" style="display:none;">
-    <h2>Náhled uložené položky</h2>
-    <img id="previewImg" src="" alt="">
-    <p id="previewText"></p>
-  </div>
+  <script type="module">
+    import { db, pushData, isValidItem } from './firebase-admin.js';
+    import { getDatabase, ref } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-  <script>
-    // Firebase init
-    const firebaseConfig = {
-      apiKey: "AIzaSyCFlTsn1ESQddd_7Neq-W6LBGRiT92c-5w",
-      authDomain: "letaky-aa6ab.firebaseapp.com",
-      databaseURL: "https://letaky-aa6ab-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "letaky-aa6ab",
-      storageBucket: "letaky-aa6ab.appspot.com",
-      messagingSenderId: "814346215288",
-      appId: "1:814346215288:web:445f9700dac9b81cd8f28d"
-    };
+    const typeRadios = document.getElementsByName('type');
+    const priceWrapper = document.getElementById('priceWrapper');
+    typeRadios.forEach(r => r.addEventListener('change', () => {
+      priceWrapper.style.display = document.querySelector('input[name="type"]:checked').value === 'zbozi' ? 'block' : 'none';
+    }));
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-
-    // Set default dates
-    const fromDateInput = document.getElementById('fromDate');
-    const toDateInput = document.getElementById('toDate');
     function setDefaultDates() {
-      const today = new Date();
-      fromDateInput.valueAsDate = today;
-      const to = new Date();
-      to.setDate(to.getDate() + 30);
-      toDateInput.valueAsDate = to;
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('fromDate').value = today;
+      const toDate = new Date();
+      toDate.setDate(toDate.getDate() + 30);
+      document.getElementById('toDate').value = toDate.toISOString().split('T')[0];
     }
     setDefaultDates();
 
-    // Toggle price field
-    const typeRadios = document.querySelectorAll('input[name="type"]');
-    const priceField = document.getElementById('priceField');
-    typeRadios.forEach(r => {
-      r.addEventListener('change', () => {
-        priceField.style.display = document.querySelector('input[name="type"]:checked').value === 'zbozi' ? 'block' : 'none';
-      });
-    });
-
-    // Handle form submit
-    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+    document.getElementById('uploadForm').addEventListener('submit', async e => {
       e.preventDefault();
-
-      const id = 'ID-' + Math.random().toString(36).substr(2, 9);
-      const type = document.querySelector('input[name="type"]:checked').value;
-
-      const entry = {
-        id,
-        type,
-        imageUrl: document.getElementById('imageUrl').value.trim(),
+      const item = {
+        imageUrl: document.getElementById('imageUrl').value,
         category: document.getElementById('category').value,
-        description: document.getElementById('description').value.trim(),
+        description: document.getElementById('description').value,
         fromDate: document.getElementById('fromDate').value,
         toDate: document.getElementById('toDate').value,
+        type: document.querySelector('input[name="type"]:checked').value,
         archived: false
       };
-
-      if (type === 'zbozi') {
-        const price = document.getElementById('price').value;
-        if (!price || isNaN(price) || price <= 0) {
-          alert('Zadejte platnou cenu!');
-          return;
-        }
-        entry.price = parseInt(price);
+      if (item.type === 'zbozi') {
+        item.price = parseInt(document.getElementById('price').value);
       }
 
-      try {
-        await db.ref('uploads').push(entry);
-
-        // show preview
-        document.getElementById('previewImg').src = entry.imageUrl;
-        document.getElementById('previewText').textContent = `${entry.category} - ${entry.description}`;
-        document.getElementById('preview').style.display = 'block';
-
-        alert('Položka uložena do Firebase!');
-        e.target.reset();
-        setDefaultDates();
-        priceField.style.display = 'none';
-      } catch (err) {
-        console.error(err);
-        alert('Chyba při ukládání do Firebase');
+      if (!isValidItem(item)) {
+        alert("Vyplňte všechna pole!");
+        return;
       }
+
+      await pushData(item);
+      alert("Data uložena!");
+      document.getElementById('uploadForm').reset();
+      setDefaultDates();
+      priceWrapper.style.display = 'none';
     });
   </script>
 </body>

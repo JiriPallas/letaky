@@ -1,63 +1,49 @@
+<!-- admin/admin-json-editor.html -->
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Editace JSON</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editace JSON dat</title>
+  <script type="module" src="./firebase-admin.js"></script>
   <style>
-    body { font-family: monospace; padding: 2rem; background: #f0f0f0; }
-    textarea { width: 100%; height: 500px; font-size: 0.9rem; margin-bottom: 1rem; }
-    button { padding: 0.5rem 1rem; margin-right: 1rem; }
+    body { font-family: sans-serif; padding: 2rem; background: #fafafa; }
+    textarea { width: 100%; height: 400px; font-family: monospace; font-size: 1rem; }
+    button { padding: 0.5rem 1rem; font-size: 1rem; margin: 1rem 0; }
   </style>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
-    import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyCFlTsn1ESQddd_7Neq-W6LBGRiT92c-5w",
-      authDomain: "letaky-aa6ab.firebaseapp.com",
-      projectId: "letaky-aa6ab",
-      storageBucket: "letaky-aa6ab.appspot.com",
-      messagingSenderId: "814346215288",
-      appId: "1:814346215288:web:445f9700dac9b81cd8f28d",
-      databaseURL: "https://letaky-aa6ab-default-rtdb.europe-west1.firebasedatabase.app/"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    const dbRef = ref(db, "uploads");
-
-    const textarea = document.getElementById("editor");
-    const status = document.getElementById("status");
-
-    async function loadData() {
-      const snapshot = await get(dbRef);
-      if (snapshot.exists()) {
-        textarea.value = JSON.stringify(snapshot.val(), null, 2);
-      } else {
-        textarea.value = "{}";
-      }
-    }
-
-    async function saveData() {
-      try {
-        const data = JSON.parse(textarea.value);
-        await set(dbRef, data);
-        status.textContent = "✅ Data byla úspěšně uložena.";
-      } catch (e) {
-        status.textContent = "❌ Chyba: Neplatný JSON.";
-      }
-    }
-
-    window.onload = loadData;
-    window.saveData = saveData;
-  </script>
 </head>
 <body>
-  <h1>Editace JSON z Firebase</h1>
-  <textarea id="editor"></textarea><br>
-  <button onclick="saveData()">💾 Uložit na server</button>
-  <button onclick="location.href='index.html'">⬅️ Zpět do Admin</button>
-  <div id="status"></div>
+
+  <h1>Editace dat (Firebase JSON)</h1>
+
+  <textarea id="jsonEditor">{}</textarea><br>
+  <button id="saveBtn">Uložit na server</button>
+
+  <script type="module">
+    import { loadAllData, writeFullData, isValidItem } from './firebase-admin.js';
+
+    const textarea = document.getElementById('jsonEditor');
+    const saveBtn = document.getElementById('saveBtn');
+
+    loadAllData().then(data => {
+      textarea.value = JSON.stringify(data, null, 2);
+    });
+
+    saveBtn.onclick = async () => {
+      try {
+        const parsed = JSON.parse(textarea.value);
+        const allValid = Object.values(parsed).every(isValidItem);
+        if (!allValid) {
+          alert("Chyba: některé položky mají chybějící nebo neplatné hodnoty.");
+          return;
+        }
+        await writeFullData(parsed);
+        alert("Data byla úspěšně uložena!");
+      } catch (err) {
+        alert("Neplatný JSON!");
+        console.error(err);
+      }
+    };
+  </script>
 </body>
 </html>
