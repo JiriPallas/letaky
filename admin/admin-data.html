@@ -21,7 +21,7 @@
         const json = await res.json();
         document.getElementById('output').textContent = JSON.stringify(json, null, 2);
       } catch (err) {
-        document.getElementById('output').textContent = 'Chyba při načítání dat.';
+        document.getElementById('output').textContent = 'Chyba při načítání dat .';
       }
     }
     loadData();
