@@ -1,145 +1,120 @@
+
 <!DOCTYPE html>
 <html lang="cs">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin - Nová položka</title>
-  <style>
-    body { font-family: sans-serif; padding: 2rem; background: #f4f4f4; }
-    form { max-width: 600px; margin: auto; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    input, textarea, select { width: 100%; margin-bottom: 1rem; padding: 0.5rem; font-size: 1rem; }
-    label { font-weight: bold; }
-    button { padding: 0.5rem 1rem; font-size: 1rem; }
-  </style>
-</head>
-<body>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
 
-<h1>Nová položka</h1>
-
-<form id="uploadForm">
-  <label for="imageUrl">Obrázek (URL)</label>
-  <input type="url" id="imageUrl" required>
-
-  <label for="category">Kategorie</label>
-  <select id="category" required>
-    <option value="">-- Vyberte --</option>
-    <option>Potraviny</option>
-    <option>Motorová vozidla</option>
-    <option>Bydlení</option>
-    <option>Šaty</option>
-    <option>Sportovní potřeby</option>
-    <option>Elektronika</option>
-    <option>Ostatní</option>
-  </select>
-
-  <label>Typ položky</label><br>
-  <label><input type="radio" name="type" value="letak" checked> Leták</label>
-  <label><input type="radio" name="type" value="zbozi"> Zboží</label>
-
-  <label for="price" id="priceLabel" style="display:none;">Cena (Kč)</label>
-  <input type="number" id="price" min="0" style="display:none;">
-
-  <label for="description">Popis</label>
-  <textarea id="description" required></textarea>
-
-  <label for="fromDate">Zobrazit od</label>
-  <input type="date" id="fromDate" required>
-
-  <label for="duration">Počet dní zobrazení</label>
-  <input type="number" id="duration" value="30" min="1" required>
-
-  <label for="toDate">Zobrazit do</label>
-  <input type="date" id="toDate" required>
-
-  <button type="submit">Uložit</button>
-</form>
-
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
-  import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyCFlTsn1ESQddd_7Neq-W6LBGRiT92c-5w",
-    authDomain: "letaky-aa6ab.firebaseapp.com",
-    projectId: "letaky-aa6ab",
-    databaseURL: "https://letaky-aa6ab-default-rtdb.europe-west1.firebasedatabase.app",
-    storageBucket: "letaky-aa6ab.appspot.com",
-    messagingSenderId: "814346215288",
-    appId: "1:814346215288:web:445f9700dac9b81cd8f28d"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-
-  const fromDateInput = document.getElementById("fromDate");
-  const toDateInput = document.getElementById("toDate");
-  const durationInput = document.getElementById("duration");
-
-  function setDefaultDates() {
-    const today = new Date();
-    fromDateInput.value = today.toISOString().split("T")[0];
-    updateToDate();
-  }
-
-  function updateToDate() {
-    const from = new Date(fromDateInput.value);
-    const days = parseInt(durationInput.value);
-    if (!isNaN(from.getTime()) && days > 0) {
-      const to = new Date(from);
-      to.setDate(to.getDate() + days);
-      toDateInput.value = to.toISOString().split("T")[0];
-    }
-  }
-
-  fromDateInput.addEventListener("change", updateToDate);
-  durationInput.addEventListener("input", updateToDate);
-  setDefaultDates();
-
-  const typeRadios = document.getElementsByName("type");
-  const priceInput = document.getElementById("price");
-  const priceLabel = document.getElementById("priceLabel");
-
-  typeRadios.forEach(radio => {
-    radio.addEventListener("change", () => {
-      if (document.querySelector('input[name="type"]:checked').value === "zbozi") {
-        priceInput.style.display = "block";
-        priceLabel.style.display = "block";
-      } else {
-        priceInput.style.display = "none";
-        priceLabel.style.display = "none";
-      }
-    });
-  });
-
-  document.getElementById("uploadForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const entry = {
-      imageUrl: document.getElementById("imageUrl").value,
-      category: document.getElementById("category").value,
-      type: document.querySelector('input[name="type"]:checked').value,
-      description: document.getElementById("description").value,
-      fromDate: document.getElementById("fromDate").value,
-      toDate: document.getElementById("toDate").value,
-      archived: false
+    const firebaseConfig = {
+      apiKey: "AIzaSyCFlTsn1ESQddd_7Neq-W6LBGRiT92c-5w",
+      authDomain: "letaky-aa6ab.firebaseapp.com",
+      databaseURL: "https://letaky-aa6ab-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "letaky-aa6ab",
+      storageBucket: "letaky-aa6ab.appspot.com",
+      messagingSenderId: "814346215288",
+      appId: "1:814346215288:web:445f9700dac9b81cd8f28d"
     };
 
-    if (entry.type === "zbozi") {
-      entry.price = parseInt(document.getElementById("price").value);
-    }
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-    try {
-      await push(ref(db, "/"), entry);
-      alert("Položka byla uložena!");
-      e.target.reset();
-      setDefaultDates();
-      priceInput.style.display = "none";
-      priceLabel.style.display = "none";
-    } catch (err) {
-      alert("Chyba při ukládání: " + err.message);
-    }
-  });
-</script>
+    window.onload = () => {
+      const fromDate = document.getElementById('fromDate');
+      const duration = document.getElementById('duration');
+      const toDate = document.getElementById('toDate');
 
+      const today = new Date().toISOString().split("T")[0];
+      fromDate.value = today;
+      duration.value = 30;
+      updateToDate();
+
+      fromDate.addEventListener("input", updateToDate);
+      duration.addEventListener("input", updateToDate);
+
+      document.getElementById("form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const type = document.querySelector("input[name='type']:checked")?.value;
+        const entry = {
+          imageUrl: document.getElementById("imageUrl").value.trim(),
+          category: document.getElementById("category").value.trim(),
+          description: document.getElementById("description").value.trim(),
+          fromDate: document.getElementById("fromDate").value.trim(),
+          toDate: document.getElementById("toDate").value.trim(),
+          type: type,
+          archived: false
+        };
+        if (type === "zbozi") {
+          entry.price = parseInt(document.getElementById("price").value.trim(), 10);
+        }
+
+        // Validering
+        if (!entry.imageUrl || !entry.category || !entry.description || !entry.fromDate || !entry.toDate || !entry.type) {
+          alert("Vyplňte prosím všechna povinná pole.");
+          return;
+        }
+
+        await push(ref(db), entry);
+        alert("Položka byla uložena!");
+        e.target.reset();
+        fromDate.value = today;
+        duration.value = 30;
+        updateToDate();
+      });
+
+      function updateToDate() {
+        const start = new Date(fromDate.value);
+        const days = parseInt(duration.value, 10);
+        if (!isNaN(start) && !isNaN(days)) {
+          const end = new Date(start);
+          end.setDate(end.getDate() + days);
+          toDate.value = end.toISOString().split("T")[0];
+        }
+      }
+
+      document.querySelectorAll("input[name='type']").forEach(radio => {
+        radio.addEventListener("change", () => {
+          document.getElementById("priceGroup").style.display =
+            document.getElementById("zbozi").checked ? "block" : "none";
+        });
+      });
+    };
+  </script>
+</head>
+<body>
+  <h1>Nová položka</h1>
+  <form id="form">
+    <label>Adresa obrázku / videa:</label><br />
+    <input type="url" id="imageUrl" required /><br />
+
+    <label>Kategorie:</label><br />
+    <input type="text" id="category" required /><br />
+
+    <label>Popis:</label><br />
+    <textarea id="description" required></textarea><br />
+
+    <label>Typ položky:</label><br />
+    <label><input type="radio" name="type" value="letak" checked /> Leták</label>
+    <label><input type="radio" name="type" value="zbozi" id="zbozi" /> Zboží</label><br />
+
+    <div id="priceGroup" style="display:none;">
+      <label>Cena:</label><br />
+      <input type="number" id="price" min="0" /><br />
+    </div>
+
+    <label>Zobrazit od:</label><br />
+    <input type="date" id="fromDate" required /><br />
+
+    <label>Počet dní zobrazení:</label><br />
+    <input type="number" id="duration" min="1" required /><br />
+
+    <label>Zobrazit do:</label><br />
+    <input type="date" id="toDate" required /><br /><br />
+
+    <button type="submit">Uložit</button>
+  </form>
 </body>
 </html>
