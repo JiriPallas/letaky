@@ -1,142 +1,109 @@
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
   <title>Admin - Aktivní položky</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <style>
     body { font-family: sans-serif; padding: 2rem; background: #f4f4f4; }
-    h1 { text-align: center; margin-bottom: 1rem; }
+    h1 { text-align: center; margin-bottom: 2rem; }
     .top-bar { text-align: center; margin-bottom: 2rem; }
-    .top-bar button {
-      padding: 0.5rem 1rem;
-      margin: 0.5rem;
-      background: #0077cc;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
-    }
-    .card {
-      background: white;
-      padding: 1rem;
-      border-radius: 8px;
-      box-shadow: 0 0 5px rgba(0,0,0,0.1);
-      text-align: center;
-      font-size: 0.9rem;
-    }
-    img {
-      max-width: 100%;
-      height: 120px;
-      object-fit: cover;
-      margin-bottom: 0.5rem;
-      border-radius: 4px;
-    }
-    button.small {
-      margin-top: 0.3rem;
-      font-size: 0.8rem;
-      padding: 0.3rem 0.6rem;
-      width: 90%;
-    }
-    canvas.qr { margin-top: 0.5rem; }
+    .top-bar button { margin: 0.5rem; padding: 0.5rem 1rem; font-size: 1rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+    .card { background: white; padding: 1rem; border-radius: 8px; text-align: center; }
+    .card img { width: 100%; height: 120px; object-fit: cover; border-radius: 4px; }
+    .card button { margin-top: 0.5rem; }
   </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 </head>
 <body>
+  <div class="top-bar">
+    <button onclick="window.location.href='index.html'">Zpět do Admin</button>
+    <button onclick="window.location.href='admin-json-editor.html'">Editovat JSON</button>
+  </div>
+  <h1>Aktivní položky</h1>
+  <div id="gallery" class="grid"></div>
 
-<div class="top-bar">
-  <button onclick="window.location.href='index.html'">Zpět do Admin</button>
-  <button onclick="window.location.href='admin-json-editor.html'">Editovat Data (JSON)</button>
-</div>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCFlTsn1ESQddd_7Neq-W6LBGRiT92c-5w",
+      authDomain: "letaky-aa6ab.firebaseapp.com",
+      databaseURL: "https://letaky-aa6ab-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "letaky-aa6ab",
+      storageBucket: "letaky-aa6ab.appspot.com",
+      messagingSenderId: "814346215288",
+      appId: "1:814346215288:web:445f9700dac9b81cd8f28d"
+    };
 
-<h1>Aktivní položky</h1>
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
-<div class="grid" id="gallery">Načítání...</div>
+    function isValidItem(item) {
+      if (!item || typeof item !== 'object') return false;
+      const requiredFields = ['id', 'type', 'imageUrl', 'category', 'description', 'fromDate', 'toDate'];
+      for (const field of requiredFields) {
+        if (!item[field] || String(item[field]).trim() === '') return false;
+      }
+      if (item.type === 'zbozi' && (item.price === undefined || item.price === null || item.price === '')) {
+        return false;
+      }
+      return true;
+    }
 
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyCFlTsn1ESQddd_7Neq-W6LBGRiT92c-5w",
-    authDomain: "letaky-aa6ab.firebaseapp.com",
-    databaseURL: "https://letaky-aa6ab-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "letaky-aa6ab",
-    storageBucket: "letaky-aa6ab.appspot.com",
-    messagingSenderId: "814346215288",
-    appId: "1:814346215288:web:445f9700dac9b81cd8f28d"
-  };
+    function renderGallery(data) {
+      const gallery = document.getElementById('gallery');
+      gallery.innerHTML = '';
 
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+      Object.entries(data).forEach(([key, item]) => {
+        if (item.archived || !isValidItem(item)) return;
 
-  async function loadData() {
-    try {
-      const snapshot = await db.ref("/").once("value");
-      const data = snapshot.val();
-      const gallery = document.getElementById("gallery");
-      gallery.innerHTML = "";
+        const card = document.createElement('div');
+        card.className = 'card';
 
-      Object.entries(data || {}).forEach(([key, item]) => {
-        if (item.archived) return;
+        const img = document.createElement('img');
+        img.src = item.imageUrl;
+        img.alt = item.description;
 
-        const card = document.createElement("div");
-        card.className = "card";
+        const desc = document.createElement('div');
+        desc.innerHTML = `<strong>${item.description}</strong><br>${item.category}<br>${item.fromDate} - ${item.toDate}`;
 
-        const img = document.createElement("img");
-        img.src = item.imageUrl || "";
-        img.alt = item.description || "";
+        if (item.type === 'zbozi') {
+          desc.innerHTML += `<br><strong>${item.price} Kč</strong>`;
+        }
 
-        const title = document.createElement("div");
-        title.innerHTML = `<strong>${item.description || ""}</strong>`;
-
-        const info = document.createElement("div");
-        info.innerHTML = `
-          ${item.category || ""}<br>
-          ${item.type === "zbozi" && item.price ? `Cena: ${item.price} Kč<br>` : ""}
-          ${item.fromDate} – ${item.toDate}
-        `;
-
-        const qr = document.createElement("canvas");
-        qr.className = "qr";
+        const qr = document.createElement('canvas');
         new QRious({
           element: qr,
-          value: window.location.origin + "/detail.html?id=" + key,
+          value: window.location.origin + '/detail.html?id=' + item.id,
           size: 100
         });
 
-        const archiveBtn = document.createElement("button");
-        archiveBtn.className = "small";
-        archiveBtn.textContent = "Archivovat";
-        archiveBtn.onclick = async () => {
-          await db.ref(key).update({ archived: true });
-          alert("Archivováno!");
-          loadData();
+        const archiveBtn = document.createElement('button');
+        archiveBtn.textContent = 'Archivovat';
+        archiveBtn.onclick = () => {
+          firebase.database().ref('uploads/' + key).update({ archived: true })
+            .then(() => location.reload())
+            .catch(err => alert('Chyba při archivaci: ' + err));
         };
 
         card.appendChild(img);
-        card.appendChild(title);
-        card.appendChild(info);
+        card.appendChild(desc);
         card.appendChild(qr);
         card.appendChild(archiveBtn);
         gallery.appendChild(card);
       });
-
-      if (gallery.innerHTML === "") {
-        gallery.textContent = "Žádné aktivní položky.";
-      }
-    } catch (err) {
-      console.error("Chyba při načítání dat:", err);
-      document.getElementById("gallery").textContent = "Nepodařilo se načíst položky.";
     }
-  }
 
-  loadData();
-</script>
-
+    firebase.database().ref('uploads').once('value')
+      .then(snapshot => {
+        const data = snapshot.val() || {};
+        renderGallery(data);
+      })
+      .catch(error => {
+        document.getElementById('gallery').textContent = 'Nepodařilo se načíst položky.';
+        console.error(error);
+      });
+  </script>
 </body>
 </html>
