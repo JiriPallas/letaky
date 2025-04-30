@@ -3,42 +3,105 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin panel</title>
+  <title>Nový záznam</title>
   <style>
     body { font-family: sans-serif; padding: 2rem; background: #f7f7f7; }
-    form, .seznam { max-width: 700px; margin: auto; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    form { max-width: 600px; margin: auto; background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
     input, textarea, select { width: 100%; margin-bottom: 1rem; padding: 0.5rem; font-size: 1rem; }
-    button { padding: 0.5rem 1rem; font-size: 1rem; margin-right: 0.5rem; }
-    .polozka { border: 1px solid #ddd; margin: 1rem 0; padding: 1rem; border-radius: 5px; background: #fafafa; }
-    img { max-width: 100%; height: auto; margin-top: 0.5rem; border-radius: 4px; }
+    .radio-group { display: flex; gap: 1rem; margin-bottom: 1rem; }
+    button { padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; background: #007acc; color: white; border: none; border-radius: 5px; }
+    #price-group { display: none; }
   </style>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-  <script>
     const firebaseConfig = {
       apiKey: "AIzaSyCFlTsn1ESQddd_7Neq-W6LBGRiT92c-5w",
       authDomain: "letaky-aa6ab.firebaseapp.com",
+      databaseURL: "https://letaky-aa6ab-default-rtdb.europe-west1.firebasedatabase.app",
       projectId: "letaky-aa6ab",
-      storageBucket: "letaky-aa6ab.firebasestorage.app",
+      storageBucket: "letaky-aa6ab.appspot.com",
       messagingSenderId: "814346215288",
-      appId: "1:814346215288:web:445f9700dac9b81cd8f28d",
-      databaseURL: "https://letaky-aa6ab-default-rtdb.europe-west1.firebasedatabase.app/"
+      appId: "1:814346215288:web:445f9700dac9b81cd8f28d"
     };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const typeRadios = document.querySelectorAll('input[name="type"]');
+      const priceGroup = document.getElementById('price-group');
+      const fromDateInput = document.getElementById('fromDate');
+      const toDateInput = document.getElementById('toDate');
+      const durationInput = document.getElementById('duration');
+
+      const today = new Date().toISOString().split('T')[0];
+      fromDateInput.value = today;
+
+      const updateToDate = () => {
+        const from = new Date(fromDateInput.value);
+        const days = parseInt(durationInput.value);
+        if (!isNaN(from.getTime()) && days > 0) {
+          const to = new Date(from);
+          to.setDate(to.getDate() + days);
+          toDateInput.value = to.toISOString().split('T')[0];
+        }
+      };
+      durationInput.addEventListener('input', updateToDate);
+      fromDateInput.addEventListener('change', updateToDate);
+      updateToDate();
+
+      typeRadios.forEach(radio => {
+        radio.addEventListener('change', () => {
+          priceGroup.style.display = radio.value === 'zbozi' ? 'block' : 'none';
+        });
+      });
+
+      document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const type = document.querySelector('input[name="type"]:checked').value;
+        const entry = {
+          type,
+          imageUrl: document.getElementById('imageUrl').value,
+          category: document.getElementById('category').value,
+          description: document.getElementById('description').value,
+          fromDate: fromDateInput.value,
+          toDate: toDateInput.value,
+          archived: false
+        };
+
+        if (type === 'zbozi') {
+          entry.price = parseInt(document.getElementById('price').value);
+        }
+
+        await push(ref(db, "uploads"), entry);
+        alert("Záznam byl uložen!");
+        document.getElementById('uploadForm').reset();
+        fromDateInput.value = today;
+        updateToDate();
+        priceGroup.style.display = "none";
+      });
+    });
   </script>
-  <script src="data-utils.js"></script>
 </head>
 <body>
-
-  <h1>Admin panel</h1>
-
   <form id="uploadForm">
-    <input type="url" id="imageUrl" required placeholder="Adresa obrázku (https://...)">
+    <h2>Nový záznam</h2>
+
+    <label>Typ položky</label>
+    <div class="radio-group">
+      <label><input type="radio" name="type" value="letak" checked> Leták</label>
+      <label><input type="radio" name="type" value="zbozi"> Zboží</label>
+    </div>
+
+    <label for="imageUrl">Adresa obrázku (URL)</label>
+    <input type="url" id="imageUrl" required placeholder="https://...">
+
+    <label for="category">Kategorie</label>
     <select id="category" required>
-      <option value="">-- Kategorie --</option>
+      <option value="">-- Vyberte --</option>
       <option>Potraviny</option>
       <option>Motorová vozidla</option>
       <option>Bydlení</option>
@@ -47,53 +110,25 @@
       <option>Elektronika</option>
       <option>Ostatní</option>
     </select>
-    <input type="text" id="description" required placeholder="Popis">
+
+    <div id="price-group">
+      <label for="price">Cena (Kč)</label>
+      <input type="number" id="price" min="0">
+    </div>
+
+    <label for="description">Popis</label>
+    <textarea id="description" required></textarea>
+
+    <label for="fromDate">Zobrazit od</label>
     <input type="date" id="fromDate" required>
+
+    <label for="duration">Počet dní zobrazení</label>
+    <input type="number" id="duration" value="30" min="1" required>
+
+    <label for="toDate">Zobrazit do</label>
     <input type="date" id="toDate" required>
+
     <button type="submit">Uložit</button>
   </form>
-
-  <div class="seznam" id="seznam"></div>
-
-  <script>
-    const form = document.getElementById('uploadForm');
-    const seznam = document.getElementById('seznam');
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const uploads = await loadUploadsFromFirebase();
-      const id = 'ID-' + Math.random().toString(36).substr(2, 9);
-      const entry = {
-        id,
-        imageUrl: document.getElementById('imageUrl').value,
-        category: document.getElementById('category').value,
-        description: document.getElementById('description').value,
-        fromDate: document.getElementById('fromDate').value,
-        toDate: document.getElementById('toDate').value,
-        archived: false
-      };
-      uploads.push(entry);
-      await saveUploadsToFirebase(uploads);
-      form.reset();
-      loadUploads();
-    });
-
-    async function loadUploads() {
-      const uploads = await loadUploadsFromFirebase();
-      seznam.innerHTML = '';
-      uploads.forEach(upload => {
-        const div = document.createElement('div');
-        div.className = 'polozka';
-        div.innerHTML = `
-          <img src="${upload.imageUrl}" alt="">
-          <p><strong>${upload.category}</strong> – ${upload.description}</p>
-        `;
-        seznam.appendChild(div);
-      });
-    }
-
-    loadUploads();
-  </script>
-
 </body>
 </html>
