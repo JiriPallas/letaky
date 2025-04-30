@@ -2,69 +2,69 @@
 <html lang="cs">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin - Aktivní položky</title>
   <style>
     body { font-family: sans-serif; padding: 2rem; background: #f4f4f4; }
-    .top-bar { text-align: center; margin-bottom: 2rem; }
-    .top-bar button { margin: 0.5rem; padding: 0.5rem 1rem; font-size: 1rem; background: #0077cc; color: white; border: none; border-radius: 5px; cursor: pointer; }
     h1 { text-align: center; margin-bottom: 2rem; }
+    .top-bar { text-align: center; margin-bottom: 2rem; }
+    .top-bar button { padding: 0.5rem 1rem; margin: 0.5rem; background: #0077cc; color: white; border: none; border-radius: 5px; cursor: pointer; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
     .card {
       background: white;
       padding: 1rem;
       border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
       text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
       font-size: 0.9rem;
     }
     img {
       max-width: 100%;
       height: 120px;
       object-fit: cover;
-      border-radius: 4px;
       margin-bottom: 0.5rem;
+      border-radius: 4px;
     }
-    button.small {
-      margin-top: 0.3rem;
-      font-size: 0.8rem;
-      padding: 0.4rem 0.7rem;
-      width: 90%;
-    }
+    button.small { margin-top: 0.3rem; font-size: 0.8rem; padding: 0.3rem 0.6rem; width: 90%; }
     canvas.qr { margin-top: 0.5rem; }
   </style>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
-  <script src="../admin/data-utils.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 </head>
 <body>
-
 <div class="top-bar">
   <button onclick="window.location.href='index.html'">Zpět do Admin</button>
   <button onclick="window.location.href='admin-json-editor.html'">Editovat Data (JSON)</button>
 </div>
 
 <h1>Aktivní položky</h1>
-
 <div class="grid" id="gallery"></div>
 
 <script>
-async function loadData() {
-  try {
-    const snapshot = await firebase.database().ref('uploads').once('value');
-    const uploads = snapshot.val();
-    if (!uploads) throw new Error("Žádná data");
+  const firebaseConfig = {
+    apiKey: "AIzaSyCFlTsn1ESQddd_7Neq-W6LBGRiT92c-5w",
+    authDomain: "letaky-aa6ab.firebaseapp.com",
+    databaseURL: "https://letaky-aa6ab-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "letaky-aa6ab",
+    storageBucket: "letaky-aa6ab.appspot.com",
+    messagingSenderId: "814346215288",
+    appId: "1:814346215288:web:445f9700dac9b81cd8f28d"
+  };
 
-    const gallery = document.getElementById('gallery');
-    gallery.innerHTML = '';
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
 
-    Object.values(uploads)
-      .filter(item => !item.archived)
-      .forEach(item => {
+  async function loadData() {
+    try {
+      const snapshot = await db.ref("/").once("value");
+      const data = snapshot.val() || {};
+      const gallery = document.getElementById('gallery');
+      gallery.innerHTML = '';
+
+      Object.entries(data).forEach(([id, item]) => {
+        if (item.archived) return;
+
         const card = document.createElement('div');
         card.className = 'card';
 
@@ -90,7 +90,7 @@ async function loadData() {
         qr.className = 'qr';
         new QRious({
           element: qr,
-          value: window.location.origin + '/detail.html?id=' + item.id,
+          value: window.location.origin + '/detail.html?id=' + id,
           size: 100
         });
 
@@ -119,7 +119,7 @@ async function loadData() {
             await navigator.share({
               title: item.description,
               text: item.category,
-              url: window.location.origin + '/detail.html?id=' + item.id
+              url: window.location.origin + '/detail.html?id=' + id
             });
           } else {
             alert('Sdílení není podporováno ve vašem prohlížeči.');
@@ -131,14 +131,8 @@ async function loadData() {
         archiveBtn.textContent = 'Archivovat';
         archiveBtn.onclick = async () => {
           if (confirm('Opravdu archivovat tuto položku?')) {
-            try {
-              await archiveItem(item.id);
-              alert('Položka byla archivována.');
-              loadData();
-            } catch (err) {
-              console.error('Chyba při archivaci:', err);
-              alert('Chyba při archivaci.');
-            }
+            await db.ref(id).update({ archived: true });
+            loadData();
           }
         };
 
@@ -155,15 +149,13 @@ async function loadData() {
 
         gallery.appendChild(card);
       });
-
-  } catch (error) {
-    console.error('Chyba při načítání dat: ', error);
-    document.getElementById('gallery').textContent = 'Nepodařilo se načíst položky.';
+    } catch (err) {
+      console.error("Nepodařilo se načíst položky:", err);
+      document.getElementById('gallery').textContent = 'Nepodařilo se načíst položky.';
+    }
   }
-}
 
-loadData();
+  loadData();
 </script>
-
 </body>
 </html>
