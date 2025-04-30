@@ -1,47 +1,51 @@
-<!-- admin/admin-json-editor.html -->
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Editace JSON dat</title>
-  <script type="module" src="./firebase-admin.js"></script>
+  <meta charset="UTF-8" />
+  <title>Editor JSON dat</title>
+  <script type="module" src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/10.11.0/firebase-database-compat.js"></script>
+  <script type="module" src="./data-utils.js"></script>
   <style>
-    body { font-family: sans-serif; padding: 2rem; background: #fafafa; }
-    textarea { width: 100%; height: 400px; font-family: monospace; font-size: 1rem; }
-    button { padding: 0.5rem 1rem; font-size: 1rem; margin: 1rem 0; }
+    textarea { width: 100%; height: 70vh; font-family: monospace; margin-top: 1rem; }
+    button { margin-top: 1rem; padding: 0.5rem 1rem; font-size: 1rem; }
   </style>
 </head>
 <body>
-
-  <h1>Editace dat (Firebase JSON)</h1>
-
-  <textarea id="jsonEditor">{}</textarea><br>
+  <h1>Editor JSON dat</h1>
+  <textarea id="jsonText"></textarea>
+  <br>
+  <button id="validateBtn">Kontrolovat JSON</button>
   <button id="saveBtn">Uložit na server</button>
+  <p id="msg"></p>
 
   <script type="module">
-    import { loadAllData, writeFullData, isValidItem } from './firebase-admin.js';
+    import { firebaseApp, db, isValidItem } from './data-utils.js';
+    import { get, ref, set } from 'https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js';
 
-    const textarea = document.getElementById('jsonEditor');
-    const saveBtn = document.getElementById('saveBtn');
+    const jsonText = document.getElementById('jsonText');
+    const msg = document.getElementById('msg');
 
-    loadAllData().then(data => {
-      textarea.value = JSON.stringify(data, null, 2);
-    });
+    const snapshot = await get(ref(db, '/'));
+    jsonText.value = JSON.stringify(snapshot.val(), null, 2);
 
-    saveBtn.onclick = async () => {
+    document.getElementById('validateBtn').onclick = () => {
       try {
-        const parsed = JSON.parse(textarea.value);
-        const allValid = Object.values(parsed).every(isValidItem);
-        if (!allValid) {
-          alert("Chyba: některé položky mají chybějící nebo neplatné hodnoty.");
-          return;
-        }
-        await writeFullData(parsed);
-        alert("Data byla úspěšně uložena!");
-      } catch (err) {
-        alert("Neplatný JSON!");
-        console.error(err);
+        const obj = JSON.parse(jsonText.value);
+        const valid = Object.entries(obj).every(([id, item]) => isValidItem(item));
+        msg.textContent = valid ? '✅ JSON je platný.' : '❌ Některé položky nejsou validní.';
+      } catch (e) {
+        msg.textContent = '❌ Chybný JSON: ' + e.message;
+      }
+    };
+
+    document.getElementById('saveBtn').onclick = async () => {
+      try {
+        const obj = JSON.parse(jsonText.value);
+        await set(ref(db, '/'), obj);
+        msg.textContent = '✅ Data byla úspěšně uložena!';
+      } catch (e) {
+        msg.textContent = '❌ Chyba: ' + e.message;
       }
     };
   </script>
