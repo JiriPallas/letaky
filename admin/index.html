@@ -1,14 +1,14 @@
-<!-- admin/index.html 1.5 -->
+<!-- admin/index.html -->
 <!DOCTYPE html>
 <html lang="cs">
 <head>
+  <script>
+    const FILE_NAME = "letaky.netlify.app/admin/index.htm";
+    const FILE_VERSION = "v. 1.6";
+  </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin Panel</title>
-  <script>
-    const FILE_NAME = "letaky.netlify.app/admin/index.htm";
-    const FILE_VERSION = "v. 1.5";
-  </script>
   <script type="module" src="./firebase-admin.js"></script>
   <style>
     body { font-family: sans-serif; padding: 2rem; background: #f7f7f7; display: flex; flex-direction: row; gap: 2rem; }
@@ -86,7 +86,7 @@
     <input type="date" id="toDate" required readonly onfocus="this.blur()">
 
     <button type="submit">Uložit</button>
-    <a href="./admin-bilder.html" style="text-decoration:none;"><button type="button">Aktivní položky</button></a>
+    <a href='/admin/admin-bilder.html' style='text-decoration:none;'><button type="button">Aktivní položky</button></a>
 
     <footer id="footerText"></footer>
   </form>
