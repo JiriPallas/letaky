@@ -1,139 +1,104 @@
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Detail kuponu </title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nabídka</title>
+  <script type="module" src="./firebase-admin.js"></script>
   <style>
-    body {
-      font-family: sans-serif;
-      max-width: 600px;
-      margin: 2rem auto;
-      padding: 1rem;
-      background: #f9f9f9;
-    }
-    header {
-      display: flex;
-      align-items: center;
-      margin-bottom: 2rem;
-    }
-    header img {
-      height: 50px;
-      margin-right: 1rem;
-      cursor: pointer;
-    }
-    header h1 {
-      font-size: 1.5rem;
-      margin: 0;
-    }
-    .kupon {
-      background: white;
-      padding: 1rem;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      text-align: center;
-    }
-    img {
-      max-width: 100%;
-      height: auto;
-      border-radius: 6px;
-    }
-    p {
-      margin: 1rem 0 0.5rem;
-    }
-    .back {
-      margin-top: 2rem;
-      text-align: center;
-    }
-    .back a {
-      text-decoration: none;
-      padding: 0.5rem 1rem;
-      background: #0077cc;
-      color: white;
-      border-radius: 5px;
-    }
-    canvas.qr {
-      margin-top: 1rem;
-    }
-    .qr-instrukce {
-      font-size: 0.85rem;
-      color: #444;
-      margin-top: 0.5rem;
-    }
+    body { font-family: sans-serif; padding: 2rem; background: #f7f7f7; max-width: 600px; margin: auto; }
+    .card { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    img { max-width: 100%; border-radius: 4px; margin-bottom: 1rem; }
+    .label { font-weight: bold; margin-top: 1rem; }
+    .warning { color: #c00; font-weight: bold; margin-bottom: 1rem; }
+    .actions { margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    button { padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; }
   </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 </head>
 <body>
-  <header>
-    <img src="logo.png" alt="Logo" onclick="location.href='index.html'">
-    <h1>Detail kuponu</h1>
-  </header>
-
-  <div class="kupon" id="kupon"></div>
-  <div class="back">
-    <a href="index.html">Hlavní stránka</a>
+  <div class="card" id="offerCard">
+    <p>Načítání záznamu…</p>
   </div>
 
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get('id');
-    const container = document.getElementById('kupon');
+  <script type="module">
+    import { getDatabase, ref, get, child } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
 
-    async function loadData() {
-      let uploads = [];
-      try {
-        uploads = JSON.parse(localStorage.getItem('adminUploads') || '[]');
-        if (!uploads.length) {
-          const res = await fetch('/data/data.json');
-          uploads = await res.json();
+    const firebaseConfig = {
+      apiKey: "AIzaSyCFlTsn1ESQddd_7Neq-W6LBGRiT92c-5w",
+      authDomain: "letaky-aa6ab.firebaseapp.com",
+      databaseURL: "https://letaky-aa6ab-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "letaky-aa6ab",
+      storageBucket: "letaky-aa6ab.firebasestorage.app",
+      messagingSenderId: "814346215288",
+      appId: "1:814346215288:web:445f9700dac9b81cd8f28d"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const id = new URLSearchParams(window.location.search).get("id");
+    const card = document.getElementById("offerCard");
+
+    if (!id) {
+      card.innerHTML = "<p>Nebyl zadán žádný identifikátor.</p>";
+    } else {
+      const itemRef = ref(db, "items/" + id);
+      get(itemRef).then(snapshot => {
+        if (!snapshot.exists()) {
+          card.innerHTML = "<p>Záznam nenalezen.</p>";
+          return;
         }
-      } catch (e) {
-        const res = await fetch('/data/data.json');
-        uploads = await res.json();
-      }
 
-      const entry = uploads.find(item => item.id === id);
+        const item = snapshot.val();
+        const today = new Date().toISOString().split("T")[0];
+        const expired = item.toDate < today;
 
-      if (entry) {
-        const img = document.createElement('img');
-        img.src = entry.imageUrl || '';
-        img.alt = entry.description || '';
+        card.innerHTML = `
+          ${expired ? `<p class="warning">Nabídka platná pouze do ${item.toDate}</p>` : ""}
+          <img src="${item.imageUrl}" alt="obrázek">
+          <p><span class="label">Kategorie:</span> ${item.category}</p>
+          <p><span class="label">Typ:</span> ${item.type}</p>
+          <p><span class="label">Cena:</span> ${item.price} Kč</p>
+          <p><span class="label">Popis:</span> ${item.description}</p>
+          <p><span class="label">Platnost:</span> ${item.fromDate} – ${item.toDate}</p>
 
-        const description = document.createElement('p');
-        description.textContent = `Popis: ${entry.description}`;
+          ${expired ? "" : `
+            <div class="actions">
+              <button onclick="downloadImage('${item.imageUrl}')">Uložit nabídku</button>
+              <button onclick="shareItem()">Sdílet</button>
+              ${item.type === 'zbozi' ? `<button onclick="alert('Koupit funkce není ještě aktivní.')">Koupit</button>` : ""}
+            </div>
+          `}
+        `;
 
-        const category = document.createElement('p');
-        category.textContent = `Kategorie: ${entry.category}`;
+        // exportera funktioner
+        window.shareItem = () => {
+          const url = window.location.href;
+          const data = {
+            title: item.category,
+            text: item.description,
+            url: url
+          };
+          if (navigator.share) {
+            navigator.share(data).catch(e => console.warn("Sdílení selhalo:", e));
+          } else {
+            alert("Sdílení není podporováno. Zkopírujte odkaz:\n" + url);
+          }
+        };
 
-        const date = document.createElement('p');
-        date.textContent = `Zobrazit od ${entry.fromDate} do ${entry.toDate}`;
-
-        const qrCanvas = document.createElement('canvas');
-        qrCanvas.className = 'qr';
-        const qrURL = window.location.href;
-
-        new QRious({
-          element: qrCanvas,
-          value: qrURL,
-          size: 140
-        });
-
-        const qrText = document.createElement('div');
-        qrText.className = 'qr-instrukce';
-        qrText.innerHTML = `Naskenujte pro zobrazení nebo otevřete ručně:<br><strong>${qrURL}</strong>`;
-
-        container.appendChild(img);
-        container.appendChild(description);
-        container.appendChild(category);
-        container.appendChild(date);
-        container.appendChild(qrCanvas);
-        container.appendChild(qrText);
-      } else {
-        container.textContent = 'Záznam nenalezen.';
-      }
+        window.downloadImage = (url) => {
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "nabidka.jpg";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        };
+      }).catch(err => {
+        console.error(err);
+        card.innerHTML = "<p>Chyba při načítání záznamu.</p>";
+      });
     }
-
-    loadData();
   </script>
 </body>
 </html>
