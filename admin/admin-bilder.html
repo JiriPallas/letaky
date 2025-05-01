@@ -160,7 +160,7 @@
         <div class="actions">
           <button onclick="archiveItem('${id}')">Archivovat</button>
           <button onclick="downloadImage('${item.imageUrl}')">Uložit nabídku</button>
-          <button onclick="shareItem(${JSON.stringify(item).replace(/"/g, '&quot;')})">Sdílet</button>
+          <button onclick="shareItem(allItems['${id}'])">Sdílet</button>
           ${item.type === 'zbozi' ? `<button onclick="alert('Koupit: ${id}')">Koupit</button>` : ''}
         </div>
       `;
@@ -187,7 +187,13 @@
   [showActive, showArchived].forEach(cb => cb.addEventListener("change", () => renderItems(allItems)));
   categoryFilters.addEventListener("change", () => renderItems(allItems));
 
+  // Exportera funktionerna globalt för onclick-stöd
+  window.archiveItem = archiveItem;
+  window.shareItem = shareItem;
+  window.downloadImage = downloadImage;
+
   setupListeners();
 </script>
+
 </body>
 </html>
