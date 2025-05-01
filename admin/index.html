@@ -4,7 +4,7 @@
 <head>
   <script>
     const FILE_NAME = "letaky.netlify.app/admin/index.htm";
-    const FILE_VERSION = "v. 1.10";
+    const FILE_VERSION = "v. 1.11";
   </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -46,7 +46,7 @@
 <body>
   <form id="uploadForm">
     <h1>Nový záznam</h1>
-    <div id="versionInfo"></div>
+    <div id="versionInfo">letaky.netlify.app/admin/index.htm v. 1.11</div>
 
     <label for="imageUrl">Adresa obrázku</label>
     <input type="url" id="imageUrl" value="https://via.placeholder.com/300" required>
@@ -96,13 +96,9 @@
   <script type="module">
     import { pushData, isValidItem } from './firebase-admin.js';
 
-
     const delayInput = document.getElementById('delayDays');
     const visibleInput = document.getElementById('visibleDays');
     const summary = document.getElementById('dateSummary');
-    const versionInfo = document.getElementById('versionInfo');
-
-    versionInfo.textContent = `${FILE_NAME} ${FILE_VERSION}`;
 
     function updateDateSummary() {
       const today = new Date();
@@ -122,9 +118,6 @@
 
     delayInput.addEventListener('input', updateDateSummary);
     visibleInput.addEventListener('input', updateDateSummary);
-
-    // Kör direkt efter DOM laddats
-    document.addEventListener('DOMContentLoaded', updateDateSummary);
     updateDateSummary();
 
     const priceWrapper = document.getElementById('priceWrapper');
