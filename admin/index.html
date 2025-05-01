@@ -4,7 +4,7 @@
 <head>
   <script>
     const FILE_NAME = "letaky.netlify.app/admin/index.htm";
-    const FILE_VERSION = "v. 1.6";
+    const FILE_VERSION = "v. 1.7";
   </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -87,9 +87,9 @@
 
     <button type="submit">Uložit</button>
     <a href='/admin/admin-bilder.html' style='text-decoration:none;'><button type="button">Aktivní položky</button></a>
-
-    <footer id="footerText"></footer>
   </form>
+
+  <footer id="footerText"></footer>
 
   <div id="preview"></div>
   <div id="snackbar">Záznam uložen!</div>
@@ -108,11 +108,13 @@
 
     function setDefaultDates() {
       const today = new Date();
-      document.getElementById('fromDate').valueAsDate = today;
+      const isoToday = today.toISOString().split("T")[0];
+      document.getElementById('fromDate').value = isoToday;
+
       const days = parseInt(document.getElementById('daysVisible').value) || 30;
       const toDate = new Date(today);
       toDate.setDate(toDate.getDate() + days);
-      document.getElementById('toDate').valueAsDate = toDate;
+      document.getElementById('toDate').value = toDate.toISOString().split("T")[0];
     }
 
     document.getElementById('daysVisible').addEventListener('input', setDefaultDates);
