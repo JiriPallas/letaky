@@ -4,7 +4,7 @@
 <head>
   <script>
     const FILE_NAME = "letaky.netlify.app/admin/admin-bilder.html";
-    const FILE_VERSION = "v. 1.0";
+    const FILE_VERSION = "v. 1.2";
   </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -12,11 +12,13 @@
   <script type="module" src="./firebase-admin.js"></script>
   <style>
     body { font-family: sans-serif; padding: 2rem; background: #f7f7f7; display: flex; gap: 2rem; }
-    .controls { flex: 0 0 200px; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    .controls { flex: 0 0 250px; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
     .output { flex: 1; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.05); overflow: auto; }
     .item { border-bottom: 1px solid #ddd; padding: 1rem 0; }
-    .item img { max-width: 100%; max-height: 200px; }
-    label { display: block; margin-bottom: 1rem; font-weight: bold; }
+    .item img { max-width: 200px; max-height: 200px; display: block; margin-bottom: 1rem; }
+    .actions { margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .actions button { padding: 0.3rem 0.8rem; font-size: 0.9rem; cursor: pointer; }
+    label { display: block; margin-bottom: 0.5rem; font-weight: bold; }
     .checkbox-group { display: flex; flex-direction: column; gap: 0.5rem; }
     #versionInfo { font-size: 0.9rem; color: #666; margin-top: 2rem; }
   </style>
@@ -25,14 +27,20 @@
   <div class="controls">
     <h2>Filtr</h2>
     <div class="checkbox-group">
-      <label><input type="checkbox" id="showActive" checked> Visa aktiva</label>
-      <label><input type="checkbox" id="showArchived"> Visa arkiverade</label>
+      <label><input type="checkbox" id="showActive" checked> Aktivní</label>
+      <label><input type="checkbox" id="showArchived"> Archivované</label>
     </div>
-    <div id="versionInfo">letaky.netlify.app/admin/admin-bilder.html v. 1.0</div>
+
+    <label>Kategorie</label>
+    <div class="checkbox-group" id="categoryFilters">
+      <!-- Genereras dynamiskt -->
+    </div>
+
+    <div id="versionInfo">letaky.netlify.app/admin/admin-bilder.html v. 1.2</div>
   </div>
 
   <div class="output" id="itemList">
-    <p>Laddar poster från databasen...</p>
+    <p>Načítání záznamů z databáze…</p>
   </div>
 
   <script type="module">
@@ -55,15 +63,40 @@
     const showActive = document.getElementById("showActive");
     const showArchived = document.getElementById("showArchived");
     const itemList = document.getElementById("itemList");
+    const categoryFilters = document.getElementById("categoryFilters");
+
+    let allItems = {};
 
     function isTodayInRange(from, to) {
       const today = new Date().toISOString().split("T")[0];
       return from <= today && today <= to;
     }
 
+    function getSelectedCategories() {
+      const checkboxes = categoryFilters.querySelectorAll("input[type=checkbox]");
+      const selected = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+      return selected.length === 0 || selected.includes("Všechny") ? [] : selected;
+    }
+
+    function renderCategoryFilters(categories) {
+      const unique = Array.from(new Set(categories));
+      categoryFilters.innerHTML = "";
+
+      const allBox = document.createElement("label");
+      allBox.innerHTML = `<input type="checkbox" value="Všechny" checked> Všechny kategorie`;
+      categoryFilters.appendChild(allBox);
+
+      unique.forEach(cat => {
+        const label = document.createElement("label");
+        label.innerHTML = `<input type="checkbox" value="${cat}"> ${cat}`;
+        categoryFilters.appendChild(label);
+      });
+    }
+
     function renderItems(data) {
       itemList.innerHTML = "";
       const entries = Object.entries(data || {});
+      const selectedCats = getSelectedCategories();
       let shown = 0;
 
       entries.forEach(([id, item]) => {
@@ -73,8 +106,12 @@
         if (isArchived && !showArchived.checked) return;
         if (!isArchived && !showActive.checked) return;
 
+        if (selectedCats.length > 0 && !selectedCats.includes(item.category)) return;
+
         const div = document.createElement("div");
         div.className = "item";
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=/detail.html?id=${id}`;
+
         div.innerHTML = `
           <p><strong>Kategorie:</strong> ${item.category}</p>
           <p><strong>Typ:</strong> ${item.type}</p>
@@ -82,13 +119,20 @@
           <p><strong>Popis:</strong> ${item.description}</p>
           <p><strong>Zobrazit:</strong> ${item.fromDate} – ${item.toDate}</p>
           <img src="${item.imageUrl}" alt="obrázek">
+          <div><img src="${qrUrl}" alt="QR kód"></div>
+          <div class="actions">
+            <button onclick="alert('Archivovat: ${id}')">Archivovat</button>
+            <button onclick="alert('Uložit nabídku: ${id}')">Uložit nabídku</button>
+            <button onclick="alert('Sdílet: ${id}')">Sdílet</button>
+            ${item.type === 'zbozi' ? `<button onclick="alert('Koupit: ${id}')">Koupit</button>` : ''}
+          </div>
         `;
         itemList.appendChild(div);
         shown++;
       });
 
       if (shown === 0) {
-        itemList.innerHTML = "<p>Inga poster att visa.</p>";
+        itemList.innerHTML = "<p>Žádné položky k zobrazení.</p>";
       }
     }
 
@@ -96,16 +140,15 @@
       const itemsRef = ref(db, "items");
       onValue(itemsRef, (snapshot) => {
         const data = snapshot.val();
-        renderItems(data);
+        allItems = data || {};
+        const categories = Object.values(allItems).map(i => i.category);
+        renderCategoryFilters(categories);
+        renderItems(allItems);
       });
     }
 
-    showActive.addEventListener("change", () => {
-      setupListeners(); // Refresha
-    });
-    showArchived.addEventListener("change", () => {
-      setupListeners();
-    });
+    [showActive, showArchived].forEach(cb => cb.addEventListener("change", () => renderItems(allItems)));
+    categoryFilters.addEventListener("change", () => renderItems(allItems));
 
     setupListeners();
   </script>
