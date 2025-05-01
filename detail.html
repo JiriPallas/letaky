@@ -6,13 +6,57 @@
   <title>Nabídka</title>
   <script type="module" src="./firebase-admin.js"></script>
   <style>
-    body { font-family: sans-serif; padding: 2rem; background: #f7f7f7; max-width: 600px; margin: auto; }
-    .card { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    img { max-width: 100%; border-radius: 4px; margin-bottom: 1rem; }
-    .label { font-weight: bold; margin-top: 1rem; }
-    .warning { color: #c00; font-weight: bold; margin-bottom: 1rem; }
-    .actions { margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
-    button { padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; }
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      background: #f7f7f7;
+      max-width: 700px;
+      margin: auto;
+    }
+    .card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    img.main {
+      max-width: 100%;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+    }
+    .content {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+    .text {
+      flex: 1;
+    }
+    .qr {
+      flex: 0 0 auto;
+    }
+    .label {
+      font-weight: bold;
+      margin-top: 0.5rem;
+      display: block;
+    }
+    .warning {
+      color: #c00;
+      font-weight: bold;
+      margin-bottom: 1rem;
+    }
+    .actions {
+      margin-top: 1.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -21,7 +65,7 @@
   </div>
 
   <script type="module">
-    import { getDatabase, ref, get, child } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
 
     const firebaseConfig = {
@@ -38,6 +82,7 @@
     const db = getDatabase(app);
     const id = new URLSearchParams(window.location.search).get("id");
     const card = document.getElementById("offerCard");
+    const fullUrl = `https://letaky.netlify.app/detail.html?id=${id}`;
 
     if (!id) {
       card.innerHTML = "<p>Nebyl zadán žádný identifikátor.</p>";
@@ -52,53 +97,24 @@
         const item = snapshot.val();
         const today = new Date().toISOString().split("T")[0];
         const expired = item.toDate < today;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(fullUrl)}`;
 
         card.innerHTML = `
           ${expired ? `<p class="warning">Nabídka platná pouze do ${item.toDate}</p>` : ""}
-          <img src="${item.imageUrl}" alt="obrázek">
-          <p><span class="label">Kategorie:</span> ${item.category}</p>
-          <p><span class="label">Typ:</span> ${item.type}</p>
-          <p><span class="label">Cena:</span> ${item.price} Kč</p>
-          <p><span class="label">Popis:</span> ${item.description}</p>
-          <p><span class="label">Platnost:</span> ${item.fromDate} – ${item.toDate}</p>
+          <img src="${item.imageUrl}" alt="obrázek" class="main">
+          <div class="content">
+            <div class="qr"><img src="${qrUrl}" alt="QR kód"></div>
+            <div class="text">
+              <span class="label">Kategorie:</span> ${item.category}<br>
+              <span class="label">Typ:</span> ${item.type}<br>
+              <span class="label">Cena:</span> ${item.price} Kč<br>
+              <span class="label">Popis:</span> ${item.description}<br>
+              <span class="label">Platnost:</span> ${item.fromDate} – ${item.toDate}
+            </div>
+          </div>
 
           ${expired ? "" : `
             <div class="actions">
               <button onclick="downloadImage('${item.imageUrl}')">Uložit nabídku</button>
               <button onclick="shareItem()">Sdílet</button>
-              ${item.type === 'zbozi' ? `<button onclick="alert('Koupit funkce není ještě aktivní.')">Koupit</button>` : ""}
-            </div>
-          `}
-        `;
-
-        // exportera funktioner
-        window.shareItem = () => {
-          const url = window.location.href;
-          const data = {
-            title: item.category,
-            text: item.description,
-            url: url
-          };
-          if (navigator.share) {
-            navigator.share(data).catch(e => console.warn("Sdílení selhalo:", e));
-          } else {
-            alert("Sdílení není podporováno. Zkopírujte odkaz:\n" + url);
-          }
-        };
-
-        window.downloadImage = (url) => {
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = "nabidka.jpg";
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-        };
-      }).catch(err => {
-        console.error(err);
-        card.innerHTML = "<p>Chyba při načítání záznamu.</p>";
-      });
-    }
-  </script>
-</body>
-</html>
+              ${item.type === 'zbozi' ? `<button onclick="alert('Koupit funkce není ještě aktivní.')">Koup
