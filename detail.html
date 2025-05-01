@@ -102,7 +102,7 @@
         const item = snapshot.val();
         const today = new Date().toISOString().split("T")[0];
         const expired = item.toDate < today;
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(fullUrl)}`;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&format=svg&data=${encodeURIComponent(fullUrl)}`;
 
         card.innerHTML = `
           ${expired ? `<p class="warning">Nabídka platná pouze do ${item.toDate}</p>` : ""}

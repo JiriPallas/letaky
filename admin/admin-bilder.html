@@ -156,3 +156,132 @@
     }
 
     function isArchived(item) {
+      const today = new Date().toISOString().split("T")[0];
+      return item.archive === true || item.toDate < today;
+    }
+
+    function isActive(item) {
+      const today = new Date().toISOString().split("T")[0];
+      return item.archive !== true && item.toDate >= today;
+    }
+
+    function getSelectedCategories() {
+      const checkboxes = categoryFilters.querySelectorAll("input[type=checkbox]");
+      const selected = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+      return selected.length === 0 || selected.includes("Všechny") ? [] : selected;
+    }
+
+    function renderCategoryFilters(categories) {
+      const unique = Array.from(new Set(categories));
+      categoryFilters.innerHTML = "";
+
+      const allBox = document.createElement("label");
+      allBox.innerHTML = `<input type="checkbox" value="Všechny" checked> Všechny kategorie`;
+      categoryFilters.appendChild(allBox);
+
+      unique.forEach(cat => {
+        const label = document.createElement("label");
+        label.innerHTML = `<input type="checkbox" value="${cat}"> ${cat}`;
+        categoryFilters.appendChild(label);
+      });
+    }
+
+    function downloadImage(url) {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'nabidka.jpg';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function shareItemFromId(id) {
+      const item = allItems[id];
+      const shareData = {
+        title: item.category,
+        text: item.description,
+        url: `https://letaky.netlify.app/detail.html?id=${id}`
+      };
+      if (navigator.share) {
+        navigator.share(shareData).catch(err => console.warn("Sdílení selhalo:", err));
+      } else {
+        alert(`Sdílení není podporováno. Zkopírujte odkaz:\n${shareData.url}`);
+      }
+    }
+
+    function archiveItem(id) {
+      const itemRef = ref(db, `items/${id}`);
+      update(itemRef, { archive: true });
+    }
+
+    function renderItems(data) {
+      itemList.innerHTML = "";
+      const entries = Object.entries(data || {});
+      const selectedCats = getSelectedCategories();
+      let shown = 0;
+
+      entries.forEach(([id, item]) => {
+        item.id = id;
+        if (!isTodayInRange(item.fromDate, item.toDate)) return;
+        if (isArchived(item) && !showArchived.checked) return;
+        if (isActive(item) && !showActive.checked) return;
+        if (selectedCats.length > 0 && !selectedCats.includes(item.category)) return;
+
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://letaky.netlify.app/detail.html?id=${id}`;
+        const div = document.createElement("div");
+        div.className = "item";
+
+        div.innerHTML = `
+          <a href="https://letaky.netlify.app/detail.html?id=${id}">
+            <img src="${item.imageUrl}" alt="obrázek" class="preview">
+          </a>
+          <div class="info-wrapper">
+            <div class="info">
+              <div class="qr"><img src="${qrUrl}" alt="QR kód"></div>
+              <div class="text">
+                <span class="label">Kategorie:</span> ${item.category}<br>
+                <span class="label">Popis:</span> ${item.description}<br>
+                ${item.type === 'zbozi' ? `<span class="label">Cena:</span> ${item.price} Kč` : ""}
+              </div>
+            </div>
+            <div class="actions">
+              <button onclick="archiveItem('${id}')">Archivovat</button>
+              <button onclick="downloadImage('${item.imageUrl}')">Uložit nabídku</button>
+              <button onclick="shareItemFromId('${id}')">Sdílet</button>
+              <button onclick="window.location.href='https://letaky.netlify.app/detail.html?id=${id}'">Detail</button>
+              ${item.type === 'zbozi' ? `<button onclick="alert('Koupit: ${id}')">Koupit</button>` : ''}
+            </div>
+          </div>
+        `;
+        itemList.appendChild(div);
+        shown++;
+      });
+
+      if (shown === 0) {
+        itemList.innerHTML = "<p>Žádné položky k zobrazení.</p>";
+      }
+    }
+
+    function setupListeners() {
+      const itemsRef = ref(db, "items");
+      onValue(itemsRef, (snapshot) => {
+        const data = snapshot.val();
+        allItems = data || {};
+        window.allItems = allItems;
+        const categories = Object.values(allItems).map(i => i.category);
+        renderCategoryFilters(categories);
+        renderItems(allItems);
+      });
+    }
+
+    [showActive, showArchived].forEach(cb => cb.addEventListener("change", () => renderItems(allItems)));
+    categoryFilters.addEventListener("change", () => renderItems(allItems));
+
+    window.archiveItem = archiveItem;
+    window.downloadImage = downloadImage;
+    window.shareItemFromId = shareItemFromId;
+
+    setupListeners();
+  </script>
+</body>
+</html>
