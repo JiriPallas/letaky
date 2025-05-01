@@ -4,7 +4,7 @@
 <head>
   <script>
     const FILE_NAME = "letaky.netlify.app/admin/index.htm";
-    const FILE_VERSION = "v. 1.7";
+    const FILE_VERSION = "v. 1.8";
   </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -97,28 +97,35 @@
   <script type="module">
     import { db, pushData, isValidItem } from './firebase-admin.js';
 
-    const footer = document.getElementById("footerText");
-    footer.textContent = `${FILE_NAME} ${FILE_VERSION}`;
+    document.addEventListener('DOMContentLoaded', () => {
+      // sätt datum
+      const today = new Date();
+      const isoToday = today.toISOString().split("T")[0];
+      const fromInput = document.getElementById('fromDate');
+      const toInput = document.getElementById('toDate');
+      const daysInput = document.getElementById('daysVisible');
+
+      fromInput.value = isoToday;
+
+      const updateToDate = () => {
+        const days = parseInt(daysInput.value) || 30;
+        const toDate = new Date(today);
+        toDate.setDate(toDate.getDate() + days);
+        toInput.value = toDate.toISOString().split("T")[0];
+      };
+
+      updateToDate();
+      daysInput.addEventListener('input', updateToDate);
+
+      // sätt footer
+      document.getElementById("footerText").textContent = `${FILE_NAME} ${FILE_VERSION}`;
+    });
 
     const priceWrapper = document.getElementById('priceWrapper');
     const typeRadios = document.getElementsByName('type');
     typeRadios.forEach(r => r.addEventListener('change', () => {
       priceWrapper.style.display = document.querySelector('input[name="type"]:checked').value === 'zbozi' ? 'block' : 'none';
     }));
-
-    function setDefaultDates() {
-      const today = new Date();
-      const isoToday = today.toISOString().split("T")[0];
-      document.getElementById('fromDate').value = isoToday;
-
-      const days = parseInt(document.getElementById('daysVisible').value) || 30;
-      const toDate = new Date(today);
-      toDate.setDate(toDate.getDate() + days);
-      document.getElementById('toDate').value = toDate.toISOString().split("T")[0];
-    }
-
-    document.getElementById('daysVisible').addEventListener('input', setDefaultDates);
-    setDefaultDates();
 
     function showSnackbar(msg = "Záznam uložen!") {
       const snackbar = document.getElementById("snackbar");
@@ -165,7 +172,8 @@
         document.getElementById('description').value = "Bez popisu";
         document.getElementById('category').value = "Ostatní";
         document.querySelector('input[name="type"][value="letak"]').checked = true;
-        setDefaultDates();
+
+        document.dispatchEvent(new Event("DOMContentLoaded")); // upprepa init
         renderPreview(item);
       } catch (err) {
         console.error(err);
