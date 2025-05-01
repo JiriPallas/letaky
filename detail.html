@@ -111,10 +111,8 @@
             <div class="qr"><img src="${qrUrl}" alt="QR kód"></div>
             <div class="text">
               <span class="label">Kategorie:</span> ${item.category}<br>
-              <span class="label">Typ:</span> ${item.type}<br>
               <span class="label">Cena:</span> ${item.price} Kč<br>
-              <span class="label">Popis:</span> ${item.description}<br>
-              <span class="label">Platnost:</span> ${item.fromDate} – ${item.toDate}
+              <span class="label">Popis:</span> ${item.description}
             </div>
           </div>
 
@@ -127,7 +125,6 @@
           `}
         `;
 
-        // Export functions
         window.shareItem = () => {
           const data = {
             title: item.category,

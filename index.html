@@ -35,7 +35,8 @@
       box-shadow: 0 0 8px rgba(0,0,0,0.05);
       display: flex;
       flex-direction: column;
-      align-items: center;
+      justify-content: space-between;
+      min-height: 360px;
     }
     .item img {
       max-width: 100%;
@@ -43,12 +44,14 @@
       border-radius: 4px;
       cursor: pointer;
     }
+    .info-wrapper {
+      margin-top: auto;
+    }
     .info {
       display: flex;
       gap: 1rem;
       margin-top: 1rem;
       align-items: flex-start;
-      width: 100%;
     }
     .qr img {
       width: 70px;
@@ -136,12 +139,14 @@
           <a href="https://letaky.netlify.app/detail.html?id=${id}">
             <img src="${item.imageUrl}" alt="náhled">
           </a>
-          <div class="info">
-            <div class="qr"><img src="${qrUrl}" alt="QR kód"></div>
-            <div class="text">
-              <span class="label">Kategorie:</span> ${item.category}<br>
-              <span class="label">Popis:</span> ${item.description}<br>
-              ${item.type === 'zbozi' ? `<span class="label">Cena:</span> ${item.price} Kč` : ""}
+          <div class="info-wrapper">
+            <div class="info">
+              <div class="qr"><img src="${qrUrl}" alt="QR kód"></div>
+              <div class="text">
+                <span class="label">Kategorie:</span> ${item.category}<br>
+                <span class="label">Popis:</span> ${item.description}<br>
+                ${item.type === 'zbozi' ? `<span class="label">Cena:</span> ${item.price} Kč` : ""}
+              </div>
             </div>
           </div>
         `;
