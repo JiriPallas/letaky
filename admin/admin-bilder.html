@@ -160,7 +160,7 @@
         <div class="actions">
           <button onclick="archiveItem('${id}')">Archivovat</button>
           <button onclick="downloadImage('${item.imageUrl}')">Uložit nabídku</button>
-          <button onclick="shareItem(allItems['${id}'])">Sdílet</button>
+          <button onclick='shareItemFromId("${id}")'>Sdílet</button>
           ${item.type === 'zbozi' ? `<button onclick="alert('Koupit: ${id}')">Koupit</button>` : ''}
         </div>
       `;
@@ -183,6 +183,13 @@
       renderItems(allItems);
     });
   }
+
+function shareItemFromId(id) {
+  const item = allItems[id];
+  shareItem(item);
+}
+window.shareItemFromId = shareItemFromId;
+
 
   [showActive, showArchived].forEach(cb => cb.addEventListener("change", () => renderItems(allItems)));
   categoryFilters.addEventListener("change", () => renderItems(allItems));
