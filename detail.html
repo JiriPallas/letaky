@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Nabídka</title>
-  <script type="module" src="./firebase-admin.js"></script>
   <style>
     body {
       font-family: sans-serif;
@@ -64,6 +63,12 @@
     <p>Načítání záznamu…</p>
   </div>
 
+  <div style="margin-top: 2rem;">
+    <a href="https://letaky.netlify.app/index.html" style="text-decoration: none;">
+      <button>Zpět na hlavní stránku</button>
+    </a>
+  </div>
+
   <script type="module">
     import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
@@ -117,4 +122,38 @@
             <div class="actions">
               <button onclick="downloadImage('${item.imageUrl}')">Uložit nabídku</button>
               <button onclick="shareItem()">Sdílet</button>
-              ${item.type === 'zbozi' ? `<button onclick="alert('Koupit funkce není ještě aktivní.')">Koup
+              ${item.type === 'zbozi' ? `<button onclick="alert('Koupit funkce není ještě aktivní.')">Koupit</button>` : ""}
+            </div>
+          `}
+        `;
+
+        // Export functions
+        window.shareItem = () => {
+          const data = {
+            title: item.category,
+            text: item.description,
+            url: fullUrl
+          };
+          if (navigator.share) {
+            navigator.share(data).catch(e => console.warn("Sdílení selhalo:", e));
+          } else {
+            alert("Sdílení není podporováno. Zkopírujte odkaz:\n" + fullUrl);
+          }
+        };
+
+        window.downloadImage = (url) => {
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "nabidka.jpg";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        };
+      }).catch(err => {
+        console.error(err);
+        card.innerHTML = "<p>Chyba při načítání záznamu.</p>";
+      });
+    }
+  </script>
+</body>
+</html>
