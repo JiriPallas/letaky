@@ -4,7 +4,7 @@
 <head>
   <script>
     const FILE_NAME = "letaky.netlify.app/admin/index.htm";
-    const FILE_VERSION = "v. 1.9";
+    const FILE_VERSION = "v. 1.10";
   </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -40,12 +40,13 @@
     @keyframes fadein { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
     @keyframes fadeout { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
     #preview { flex: 1; background: #fff; padding: 1rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.05); overflow: auto; }
-    footer { text-align: center; font-size: 0.9rem; color: #666; margin-top: 2rem; }
+    #versionInfo { font-size: 0.9rem; color: #666; margin-top: -1rem; margin-bottom: 1.5rem; }
   </style>
 </head>
 <body>
   <form id="uploadForm">
     <h1>Nový záznam</h1>
+    <div id="versionInfo"></div>
 
     <label for="imageUrl">Adresa obrázku</label>
     <input type="url" id="imageUrl" value="https://via.placeholder.com/300" required>
@@ -87,8 +88,6 @@
 
     <button type="submit">Uložit</button>
     <a href='/admin/admin-bilder.html' style='text-decoration:none;'><button type="button">Aktivní položky</button></a>
-
-    <div id="versionDisplay" style="margin-top:1rem; font-size:0.9rem; color:#555;"></div>
   </form>
 
   <div id="preview"></div>
@@ -100,8 +99,9 @@
     const delayInput = document.getElementById('delayDays');
     const visibleInput = document.getElementById('visibleDays');
     const summary = document.getElementById('dateSummary');
-    const versionDisplay = document.getElementById('versionDisplay');
-    versionDisplay.textContent = `${FILE_NAME} ${FILE_VERSION}`;
+    const versionInfo = document.getElementById('versionInfo');
+
+    versionInfo.textContent = `${FILE_NAME} ${FILE_VERSION}`;
 
     function updateDateSummary() {
       const today = new Date();
@@ -121,6 +121,9 @@
 
     delayInput.addEventListener('input', updateDateSummary);
     visibleInput.addEventListener('input', updateDateSummary);
+
+    // Kör direkt efter DOM laddats
+    document.addEventListener('DOMContentLoaded', updateDateSummary);
     updateDateSummary();
 
     const priceWrapper = document.getElementById('priceWrapper');
