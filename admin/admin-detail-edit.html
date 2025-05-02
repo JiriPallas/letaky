@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="cs">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Upravit položku</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      background: #f7f7f7;
+      max-width: 600px;
+      margin: auto;
+    }
+
+    form {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      margin-bottom: 1rem;
+      padding: 0.5rem;
+      font-size: 1rem;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 0.3rem;
+    }
+
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    button {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    button.delete {
+      background: #c00;
+      color: white;
+    }
+
+    button.archive {
+      background: #666;
+      color: white;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Úprava záznamu</h1>
+  <form id="editForm">
+    <label for="imageUrl">Adresa obrázku</label>
+    <input type="url" id="imageUrl" required>
+
+    <label for="category">Kategorie</label>
+    <select id="category" required>
+      <option>Ostatní</option>
+      <option>Potraviny</option>
+      <option>Motorová vozidla</option>
+      <option>Bydlení</option>
+      <option>Šaty</option>
+      <option>Sportovní potřeby</option>
+      <option>Elektronika</option>
+    </select>
+
+    <label>Typ položky</label>
+    <input type="text" id="type" disabled>
+
+    <label for="price">Cena (Kč)</label>
+    <input type="number" id="price" min="0">
+
+    <label for="description">Popis</label>
+    <textarea id="description" required></textarea>
+
+    <label for="fromDate">Zobrazit od</label>
+    <input type="date" id="fromDate" required>
+
+    <label for="toDate">Zobrazit do</label>
+    <input type="date" id="toDate" required>
+
+    <div class="buttons">
+      <button type="submit">Uložit změny</button>
+      <button type="button" class="archive" id="archiveBtn">Archivovat</button>
+      <button type="button" class="delete" id="deleteBtn">Vymazat</button>
+    </div>
+  </form>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import { getDatabase, ref, get, update, remove } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCFlTsn1ESQddd_7Neq-W6LBGRiT92c-5w",
+      authDomain: "letaky-aa6ab.firebaseapp.com",
+      databaseURL: "https://letaky-aa6ab-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "letaky-aa6ab",
+      storageBucket: "letaky-aa6ab.firebasestorage.app",
+      messagingSenderId: "814346215288",
+      appId: "1:814346215288:web:445f9700dac9b81cd8f28d"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const id = new URLSearchParams(window.location.search).get("id");
+    if (!id) {
+      alert("Chybí ID položky");
+      throw new Error("Chybí ID");
+    }
+
+    const form = document.getElementById("editForm");
+    const fields = ["imageUrl", "category", "type", "price", "description", "fromDate", "toDate"];
+    const itemRef = ref(db, "items/" + id);
+
+    get(itemRef).then(snapshot => {
+      if (!snapshot.exists()) {
+        alert("Záznam nenalezen.");
+        return;
+      }
+      const item = snapshot.val();
+      fields.forEach(f => {
+        document.getElementById(f).value = item[f] || "";
+      });
+    });
+
+    form.addEventListener("submit", async e => {
+      e.preventDefault();
+      const updated = {};
+      fields.forEach(f => {
+        if (f !== "type") {
+          updated[f] = document.getElementById(f).value;
+        }
+      });
+      try {
+        await update(itemRef, updated);
+        alert("Záznam byl aktualizován.");
+        window.location.href = "/admin/admin-bilder.html";
+      } catch (err) {
+        console.error(err);
+        alert("Chyba při ukládání.");
+      }
+    });
+
+    document.getElementById("archiveBtn").addEventListener("click", async () => {
+      if (confirm("Opravdu chcete archivovat tento záznam?")) {
+        await update(itemRef, { archive: true });
+        alert("Záznam byl archivován.");
+        window.location.href = "/admin/admin-bilder.html";
+      }
+    });
+
+    document.getElementById("deleteBtn").addEventListener("click", async () => {
+      if (confirm("Opravdu chcete smazat tento záznam?")) {
+        await remove(itemRef);
+        alert("Záznam byl smazán.");
+        window.location.href = "/admin/admin-bilder.html";
+      }
+    });
+  </script>
+</body>
+
+</html>
