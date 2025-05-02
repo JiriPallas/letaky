@@ -1,7 +1,6 @@
 [build]
-functions = "netlify/functions"
-node_version = "18"
-publish = "."
+  publish = "letaky"
+  command = ""
 
-[functions]
-node_bundler = "esbuild"
+[context.production]
+  branch = "master"
