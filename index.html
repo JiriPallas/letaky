@@ -1,72 +1,87 @@
 <!DOCTYPE html>
 <html lang="cs">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Letáky</title>
+  <title>Letáky </title>
   <style>
     body {
       font-family: sans-serif;
       padding: 2rem;
       background: #f7f7f7;
     }
-    h1 { margin-bottom: 1rem; }
+
+    h1 {
+      margin-bottom: 1rem;
+    }
+
     #categoryFilters {
       margin-bottom: 2rem;
       display: flex;
       flex-wrap: wrap;
       gap: 1rem;
     }
+
     #categoryFilters label {
       display: flex;
       align-items: center;
       gap: 0.5rem;
       font-weight: normal;
     }
+
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 1rem;
     }
+
     .item {
       background: white;
       border-radius: 8px;
       padding: 1rem;
-      box-shadow: 0 0 8px rgba(0,0,0,0.05);
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.05);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       min-height: 360px;
     }
+
     .item img {
       max-width: 100%;
       height: auto;
       border-radius: 4px;
       cursor: pointer;
     }
+
     .info-wrapper {
       margin-top: auto;
     }
+
     .info {
       display: flex;
       gap: 1rem;
       margin-top: 1rem;
       align-items: flex-start;
     }
+
     .qr img {
       width: 70px;
       height: 70px;
     }
+
     .text {
       flex: 1;
       font-size: 0.95rem;
     }
+
     .label {
       font-weight: bold;
       display: block;
     }
   </style>
 </head>
+
 <body>
   <h1>Nabídky</h1>
   <div id="categoryFilters"></div>
@@ -174,4 +189,5 @@
     setup();
   </script>
 </body>
+
 </html>
