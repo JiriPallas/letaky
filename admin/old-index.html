@@ -1,9 +1,15 @@
+<!-- admin/index.html -->
 <!DOCTYPE html>
 <html lang="cs">
 <head>
+  <script>
+    const FILE_NAME = "letaky.netlify.app/admin/index.htm";
+    const FILE_VERSION = "v. 1.11";
+  </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Nový záznam</title>
+  <title>Admin Panel</title>
+  <script type="module" src="./firebase-admin.js"></script>
   <style>
     body { font-family: sans-serif; padding: 2rem; background: #f7f7f7; display: flex; flex-direction: row; gap: 2rem; }
     form { flex: 1; max-width: 600px; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
@@ -12,8 +18,6 @@
     .radio-group { display: flex; gap: 1rem; margin-bottom: 1rem; align-items: center; }
     .radio-group label { font-weight: normal; display: flex; align-items: center; gap: 0.3rem; margin-top: 0; }
     button { padding: 0.5rem 1rem; font-size: 1rem; margin-right: 1rem; }
-    #preview { flex: 1; background: #fff; padding: 1rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.05); overflow: auto; }
-    footer { text-align: center; font-size: 0.9rem; color: #666; margin-top: 2rem; }
     #snackbar {
       visibility: hidden;
       min-width: 250px;
@@ -35,12 +39,14 @@
     }
     @keyframes fadein { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
     @keyframes fadeout { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
+    #preview { flex: 1; background: #fff; padding: 1rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.05); overflow: auto; }
+    #versionInfo { font-size: 0.9rem; color: #666; margin-top: -1rem; margin-bottom: 1.5rem; }
   </style>
 </head>
 <body>
   <form id="uploadForm">
     <h1>Nový záznam</h1>
-    <div style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">letaky.netlify.app/admin/index.html v. 1.11</div>
+    <div id="versionInfo">letaky.netlify.app/admin/index.htm v. 1.11</div>
 
     <label for="imageUrl">Adresa obrázku</label>
     <input type="url" id="imageUrl" value="https://via.placeholder.com/300" required>
@@ -74,56 +80,45 @@
     <label for="delayDays">Začít ukazovat za dní</label>
     <input type="number" id="delayDays" value="0" min="0">
 
-    <label for="daysVisible">Počet dní zobrazení</label>
-    <input type="number" id="daysVisible" value="30" min="1">
+    <label for="visibleDays">Počet dní zobrazení</label>
+    <input type="number" id="visibleDays" value="30" min="1">
 
-    <label>Zobrazí se:</label>
-    <div id="datePreview" style="margin-bottom:1rem; font-weight:bold;"></div>
+    <label for="dateSummary">Zobrazí se:</label>
+    <input type="text" id="dateSummary" readonly style="background:#eee; font-weight:bold;">
 
     <button type="submit">Uložit</button>
-    <a href="./admin-bilder.html" style="text-decoration:none;"><button type="button">Aktivní položky</button></a>
-
-    <footer id="footerText"></footer>
+    <a href='/admin/admin-bilder.html' style='text-decoration:none;'><button type="button">Aktivní položky</button></a>
   </form>
 
   <div id="preview"></div>
   <div id="snackbar">Záznam uložen!</div>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-    import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyCFlTsn1ESQddd_7Neq-W6LBGRiT92c-5w",
-      authDomain: "letaky-aa6ab.firebaseapp.com",
-      databaseURL: "https://letaky-aa6ab-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "letaky-aa6ab",
-      storageBucket: "letaky-aa6ab.firebasestorage.app",
-      messagingSenderId: "814346215288",
-      appId: "1:814346215288:web:445f9700dac9b81cd8f28d"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+    import { pushData, isValidItem } from './firebase-admin.js';
 
     const delayInput = document.getElementById('delayDays');
-    const durationInput = document.getElementById('daysVisible');
-    const datePreview = document.getElementById('datePreview');
+    const visibleInput = document.getElementById('visibleDays');
+    const summary = document.getElementById('dateSummary');
 
-    function updatePreviewDates() {
+    function updateDateSummary() {
+      const today = new Date();
       const delay = parseInt(delayInput.value) || 0;
-      const duration = parseInt(durationInput.value) || 30;
-      const from = new Date();
+      const visible = parseInt(visibleInput.value) || 1;
+
+      const from = new Date(today);
       from.setDate(from.getDate() + delay);
+
       const to = new Date(from);
-      to.setDate(from.getDate() + duration);
-      const format = d => d.toISOString().split("T")[0];
-      datePreview.textContent = format(from) + " – " + format(to);
+      to.setDate(to.getDate() + visible);
+
+      const fromStr = from.toISOString().split("T")[0];
+      const toStr = to.toISOString().split("T")[0];
+      summary.value = `${fromStr} - ${toStr}`;
     }
 
-    delayInput.addEventListener('input', updatePreviewDates);
-    durationInput.addEventListener('input', updatePreviewDates);
-    updatePreviewDates();
+    delayInput.addEventListener('input', updateDateSummary);
+    visibleInput.addEventListener('input', updateDateSummary);
+    updateDateSummary();
 
     const priceWrapper = document.getElementById('priceWrapper');
     const typeRadios = document.getElementsByName('type');
@@ -138,14 +133,30 @@
       setTimeout(() => snackbar.className = snackbar.className.replace("show", ""), 3000);
     }
 
+    function renderPreview(item) {
+      document.getElementById('preview').innerHTML = `
+        <h2>Náhled:</h2>
+        <p><img src="${item.imageUrl}" alt="náhled" style="max-width:100%;"></p>
+        <p><strong>Kategorie:</strong> ${item.category}</p>
+        <p><strong>Typ:</strong> ${item.type}</p>
+        <p><strong>Cena:</strong> ${item.price} Kč</p>
+        <p><strong>Popis:</strong> ${item.description}</p>
+        <p><strong>Zobrazí se:</strong> ${summary.value}</p>
+      `;
+    }
+
     document.getElementById('uploadForm').addEventListener('submit', async e => {
       e.preventDefault();
+
+      const today = new Date();
       const delay = parseInt(delayInput.value) || 0;
-      const duration = parseInt(durationInput.value) || 30;
-      const fromDate = new Date();
-      fromDate.setDate(fromDate.getDate() + delay);
-      const toDate = new Date(fromDate);
-      toDate.setDate(fromDate.getDate() + duration);
+      const visible = parseInt(visibleInput.value) || 1;
+
+      const from = new Date(today);
+      from.setDate(from.getDate() + delay);
+
+      const to = new Date(from);
+      to.setDate(to.getDate() + visible);
 
       const item = {
         imageUrl: document.getElementById('imageUrl').value,
@@ -153,20 +164,19 @@
         type: document.querySelector('input[name="type"]:checked').value,
         price: parseFloat(document.getElementById('price').value) || 0,
         description: document.getElementById('description').value,
-        fromDate: fromDate.toISOString().split("T")[0],
-        toDate: toDate.toISOString().split("T")[0],
-        archive: false
+        fromDate: from.toISOString().split("T")[0],
+        toDate: to.toISOString().split("T")[0]
       };
 
+      if (!isValidItem(item)) {
+        showSnackbar("Chybná data! Zkontrolujte vstupy.");
+        return;
+      }
+
       try {
-        await push(ref(db, "items"), item);
-        showSnackbar("Záznam byl uložen.");
-        document.getElementById('uploadForm').reset();
-        document.getElementById('imageUrl').value = "https://via.placeholder.com/300";
-        document.getElementById('description').value = "Bez popisu";
-        document.getElementById('category').value = "Ostatní";
-        document.querySelector('input[name="type"][value="letak"]').checked = true;
-        updatePreviewDates();
+        await pushData(item);
+        showSnackbar();
+        renderPreview(item);
       } catch (err) {
         console.error(err);
         showSnackbar("Nepodařilo se uložit.");

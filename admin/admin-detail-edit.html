@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="cs">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Upravit položku</title>
+  <title>Úprava záznamu</title>
   <style>
     body {
       font-family: sans-serif;
@@ -13,54 +12,44 @@
       max-width: 600px;
       margin: auto;
     }
-
     form {
       background: white;
       padding: 1.5rem;
       border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-
-    input,
-    textarea,
-    select {
+    input, textarea, select {
       width: 100%;
       margin-bottom: 1rem;
       padding: 0.5rem;
       font-size: 1rem;
     }
-
     label {
       font-weight: bold;
       display: block;
       margin-bottom: 0.3rem;
     }
-
     .buttons {
       display: flex;
       flex-wrap: wrap;
       gap: 1rem;
       margin-top: 1rem;
     }
-
     button {
       padding: 0.5rem 1rem;
       font-size: 1rem;
       cursor: pointer;
     }
-
     button.delete {
       background: #c00;
       color: white;
     }
-
     button.archive {
       background: #666;
       color: white;
     }
   </style>
 </head>
-
 <body>
   <h1>Úprava záznamu</h1>
   <form id="editForm">
@@ -173,5 +162,4 @@
     });
   </script>
 </body>
-
 </html>
