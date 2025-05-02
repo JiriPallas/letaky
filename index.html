@@ -1,193 +1,29 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="cs">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Letáky </title>
+  <title>Test Letáky</title>
   <style>
     body {
       font-family: sans-serif;
-      padding: 2rem;
-      background: #f7f7f7;
+      background: #f0f0f0;
+      padding: 3rem;
+      text-align: center;
     }
-
     h1 {
-      margin-bottom: 1rem;
+      font-size: 3rem;
+      color: #007bff;
     }
-
-    #categoryFilters {
-      margin-bottom: 2rem;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-
-    #categoryFilters label {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-weight: normal;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
-    }
-
-    .item {
-      background: white;
-      border-radius: 8px;
-      padding: 1rem;
-      box-shadow: 0 0 8px rgba(0, 0, 0, 0.05);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      min-height: 360px;
-    }
-
-    .item img {
-      max-width: 100%;
-      height: auto;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-
-    .info-wrapper {
-      margin-top: auto;
-    }
-
-    .info {
-      display: flex;
-      gap: 1rem;
-      margin-top: 1rem;
-      align-items: flex-start;
-    }
-
-    .qr img {
-      width: 70px;
-      height: 70px;
-    }
-
-    .text {
-      flex: 1;
-      font-size: 0.95rem;
-    }
-
-    .label {
-      font-weight: bold;
-      display: block;
+    p {
+      font-size: 1.2rem;
+      color: #333;
     }
   </style>
 </head>
-
 <body>
-  <h1>Nabídky</h1>
-  <div id="categoryFilters"></div>
-  <div class="grid" id="itemGrid"></div>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyCFlTsn1ESQddd_7Neq-W6LBGRiT92c-5w",
-      authDomain: "letaky-aa6ab.firebaseapp.com",
-      databaseURL: "https://letaky-aa6ab-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "letaky-aa6ab",
-      storageBucket: "letaky-aa6ab.firebasestorage.app",
-      messagingSenderId: "814346215288",
-      appId: "1:814346215288:web:445f9700dac9b81cd8f28d"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    const grid = document.getElementById("itemGrid");
-    const categoryFilters = document.getElementById("categoryFilters");
-
-    let allItems = {};
-
-    function isActive(item) {
-      const today = new Date().toISOString().split("T")[0];
-      return item.archive !== true && item.toDate >= today;
-    }
-
-    function getSelectedCategories() {
-      const checked = categoryFilters.querySelectorAll("input[type=checkbox]:checked");
-      const selected = Array.from(checked).map(cb => cb.value);
-      return selected.includes("Všechny") || selected.length === 0 ? [] : selected;
-    }
-
-    function renderCategoryFilters(categories) {
-      const unique = Array.from(new Set(categories));
-      categoryFilters.innerHTML = "";
-
-      const all = document.createElement("label");
-      all.innerHTML = `<input type="checkbox" value="Všechny" checked> Všechny kategorie`;
-      categoryFilters.appendChild(all);
-
-      unique.forEach(cat => {
-        const label = document.createElement("label");
-        label.innerHTML = `<input type="checkbox" value="${cat}"> ${cat}`;
-        categoryFilters.appendChild(label);
-      });
-
-      categoryFilters.addEventListener("change", () => renderItems(allItems));
-    }
-
-    function renderItems(data) {
-      grid.innerHTML = "";
-      const entries = Object.entries(data || {});
-      const selectedCats = getSelectedCategories();
-      let count = 0;
-
-      entries.forEach(([id, item]) => {
-        if (!isActive(item)) return;
-        if (selectedCats.length > 0 && !selectedCats.includes(item.category)) return;
-
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&format=svg&data=https://letaky.netlify.app/detail.html?id=${id}`;
-        const div = document.createElement("div");
-        div.className = "item";
-
-        div.innerHTML = `
-          <a href="https://letaky.netlify.app/detail.html?id=${id}">
-            <img src="${item.imageUrl}" alt="náhled">
-          </a>
-          <div class="info-wrapper">
-            <div class="info">
-              <div class="qr"><img src="${qrUrl}" alt="QR kód"></div>
-              <div class="text">
-                <span class="label">Kategorie:</span> ${item.category}<br>
-                <span class="label">Popis:</span> ${item.description}<br>
-                ${item.type === 'zbozi' ? `<span class="label">Cena:</span> ${item.price} Kč` : ""}
-              </div>
-            </div>
-          </div>
-        `;
-
-        grid.appendChild(div);
-        count++;
-      });
-
-      if (count === 0) {
-        grid.innerHTML = "<p>Žádné aktivní nabídky.</p>";
-      }
-    }
-
-    function setup() {
-      const refData = ref(db, "items");
-      onValue(refData, (snapshot) => {
-        const data = snapshot.val();
-        allItems = data || {};
-        const categories = Object.values(allItems).map(i => i.category);
-        renderCategoryFilters(categories);
-        renderItems(allItems);
-      });
-    }
-
-    setup();
-  </script>
+  <h1>✅ Funkční deploy z master</h1>
+  <p>Toto je testovací stránka z <strong>index.html</strong> v root-mappen.</p>
 </body>
-
 </html>
