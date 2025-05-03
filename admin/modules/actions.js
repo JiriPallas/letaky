@@ -1,48 +1,17 @@
-// actions.js – globala funktioner för admin-knappar
+// admin/modules/actions.js v1.2
+import { db, ref, update, remove } from './firebase-init.js';
 
-import { ref, update } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
-import { db } from './firebase-init.js';
-
-function archiveItem(id) {
-  if (!db) return console.warn("Firebase DB saknas");
+export function archiveItem(id) {
   const itemRef = ref(db, `items/${id}`);
-  update(itemRef, { archive: true });
+  return update(itemRef, { archive: true });
 }
 
-function activateItem(id) {
-  if (!db) return console.warn("Firebase DB saknas");
+export function activateItem(id) {
   const itemRef = ref(db, `items/${id}`);
-  update(itemRef, { archive: false });
+  return update(itemRef, { archive: false });
 }
 
-function shareItem(item) {
-  const shareData = {
-    title: item.category,
-    text: item.description,
-    url: window.location.origin + `/detail.html?id=${item.id}`
-  };
-  if (navigator.share) {
-    navigator.share(shareData).catch(err => console.warn("Sdílení selhalo:", err));
-  } else {
-    alert(`Sdílení není podporováno. Zkopírujte odkaz:
-${shareData.url}`);
-  }
+export function deleteItem(id) {
+  const itemRef = ref(db, `items/${id}`);
+  return remove(itemRef);
 }
-
-function downloadImage(url) {
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'nabidka.jpg';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
-// Exponera globalt
-window.archiveItem = archiveItem;
-window.activateItem = activateItem;
-window.shareItem = shareItem;
-window.downloadImage = downloadImage;
-
-// Exportera också
-export { archiveItem, activateItem, shareItem, downloadImage };
