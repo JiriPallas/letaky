@@ -1,4 +1,4 @@
-<!-- admin/admin-detail-edit.html v1.4 -->
+<!-- admin/admin-detail-edit.html v1.3 -->
 <!DOCTYPE html>
 <html lang="cs">
 <head>
@@ -7,10 +7,10 @@
   <title>Editace záznamu</title>
   <script>
     const FILE_NAME = "letaky.netlify.app/admin/admin-detail-edit.html";
-    const FILE_VERSION = "v. 1.4";
+    const FILE_VERSION = "v. 1.3";
   </script>
   <script type="module">
-    import { db, ref, update, onValue, remove } from './modules/firebase-init.js';
+    import { db, ref, update, onValue } from './modules/firebase-init.js';
 
     const params = new URLSearchParams(window.location.search);
     const id = params.get("id");
@@ -30,12 +30,8 @@
       document.getElementById("description").value = item.description || "";
       document.getElementById("fromDate").value = item.fromDate || "";
       document.getElementById("toDate").value = item.toDate || "";
-      document.getElementById("imgPreview").src = item.imageUrl || "";
-      document.getElementById("qr").src = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://hittv.netlify.app/detail.html?id=${id}`;
 
-      // Visa bara pris för zbozi
-      const priceWrapper = document.getElementById("price-wrapper");
-      priceWrapper.style.display = item.type === "zbozi" ? "block" : "none";
+      document.getElementById("qr").src = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://hittv.netlify.app/detail.html?id=${id}`;
     });
 
     window.saveItem = async () => {
@@ -61,7 +57,7 @@
 
     window.deleteItem = async () => {
       if (confirm("Opravdu chcete záznam smazat?")) {
-        await remove(ref(db, `items/${id}`));
+        await update(ref(db, `items/${id}`), null);
         alert("Záznam odstraněn.");
         window.location.href = "/admin/admin-bilder.html";
       }
@@ -72,19 +68,21 @@
     form { max-width: 600px; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
     input, textarea, select { width: 100%; margin-bottom: 1rem; padding: 0.5rem; font-size: 1rem; }
     button { padding: 0.5rem 1rem; margin-right: 1rem; }
-    img { display: block; margin-top: 1rem; max-width: 100%; }
+    img { display: block; margin-top: 1rem; }
     .footer { margin-top: 2rem; font-size: 0.9rem; color: #666; }
-    .top-buttons { margin-top: 2rem; }
+    .top-buttons { margin-bottom: 1rem; }
   </style>
 </head>
 <body>
+  <div class="top-buttons">
+    <a href="/admin/admin-bilder.html"><button>Zpět na Admin</button></a>
+  </div>
+
   <form onsubmit="event.preventDefault(); saveItem();">
     <h1>Editace záznamu</h1>
 
     <label for="imageUrl">Adresa obrázku</label>
     <input type="url" id="imageUrl" required>
-
-    <img id="imgPreview" src="" alt="náhled obrázku" />
 
     <label for="category">Kategorie</label>
     <select id="category" required>
@@ -97,10 +95,8 @@
       <option value="Ostatní">Ostatní</option>
     </select>
 
-    <div id="price-wrapper">
-      <label for="price">Cena (Kč)</label>
-      <input type="number" id="price" min="0">
-    </div>
+    <label for="price">Cena (Kč)</label>
+    <input type="number" id="price" min="0">
 
     <label for="description">Popis</label>
     <textarea id="description" rows="3" required></textarea>
@@ -113,11 +109,10 @@
 
     <img id="qr" alt="QR kód">
 
-    <div class="top-buttons">
+    <div>
       <button type="submit">Uložit</button>
       <button type="button" onclick="archiveItem()">Archivovat</button>
       <button type="button" onclick="deleteItem()">Vymazat</button>
-      <a href="/admin/admin-bilder.html"><button type="button">Zpět na Admin</button></a>
     </div>
 
     <div class="footer" id="versionFooter"></div>
