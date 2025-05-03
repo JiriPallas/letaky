@@ -1,63 +1,61 @@
-// admin/modules/helpers.js v1.2
+// admin/modules/helpers.js v1.3
 import { ref, onValue } from './firebase-init.js';
 
-export function fetchItems(callback) {
+function fetchItems(callback) {
   const dbRef = ref(window.db, 'items');
-  onValue(dbRef, snapshot => {
-    const data = snapshot.val() || {};
-    callback(data);
+  onValue(dbRef, (snapshot) => {
+    const data = snapshot.val();
+    callback(data || {});
   });
 }
 
-export function renderItemGrid(data, options) {
-  const {
-    itemList,
-    showActive,
-    showArchived,
-    categoryFilters,
-    actions: { archiveItem, activateItem, deleteItem }
-  } = options;
-
+function isArchived(item) {
   const today = new Date().toISOString().split("T")[0];
-  const entries = Object.entries(data || {});
-  const selectedCats = Array.from(categoryFilters.querySelectorAll("input[type=checkbox]:checked"))
-    .map(cb => cb.value);
+  return item.archive === true || item.toDate < today;
+}
 
+function isActive(item) {
+  const today = new Date().toISOString().split("T")[0];
+  return item.archive !== true && item.toDate >= today;
+}
+
+function renderItemGrid(data, { itemList, showActive, showArchived, categoryFilters, actions }) {
   itemList.innerHTML = "";
+  const entries = Object.entries(data || {});
+  const selectedCats = getSelectedCategories(categoryFilters);
   let shown = 0;
 
   entries.forEach(([id, item]) => {
-    item.id = id;
-    const isArchived = item.archive === true || item.toDate < today;
-    const isActive = item.archive !== true && item.toDate >= today;
+    const archived = isArchived(item);
+    const active = isActive(item);
+    const todayInRange = item.fromDate <= today() && today() <= item.toDate;
 
-    const categoryMatch = selectedCats.includes("Všechny") || selectedCats.length === 0 || selectedCats.includes(item.category);
-    if ((isActive && !showActive.checked) || (isArchived && !showArchived.checked) || !categoryMatch) {
-      return;
-    }
+    if (!todayInRange) return;
+    if (!showActive.checked && active) return;
+    if (!showArchived.checked && archived) return;
+    if (selectedCats.length > 0 && !selectedCats.includes(item.category)) return;
 
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&format=svg&data=https://hittv.netlify.app/detail.html?id=${id}`;
+    const qr = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://hittv.netlify.app/detail.html?id=${id}`;
     const div = document.createElement("div");
     div.className = "item";
 
     div.innerHTML = `
-      <img class="preview" src="${item.imageUrl}" alt="obrázek" onclick="window.open('/detail.html?id=${id}','_blank')">
+      <img src="${item.imageUrl}" alt="obrázek" class="preview" onclick="window.location.href='/detail.html?id=${id}'">
       <div class="info-wrapper">
         <div class="info">
-          <div class="qr"><img src="${qrUrl}" alt="QR kód"></div>
+          <div class="qr"><img src="${qr}" alt="QR kód" onclick="window.location.href='/detail.html?id=${id}'"></div>
           <div class="text">
             <span class="label">Kategorie:</span> ${item.category}<br>
             <span class="label">Popis:</span> ${item.description}<br>
-            ${item.type === "zbozi" ? `<span class="label">Cena:</span> ${item.price} Kč` : ""}
+            ${item.type === 'zbozi' ? `<span class="label">Cena:</span> ${item.price} Kč` : ""}
           </div>
         </div>
         <div class="actions">
-          ${isArchived
-            ? `<button onclick="window.location.href='/admin/admin-detail-edit.html?id=${id}'">Edit</button>
-               <button onclick="activateItem('${id}')">Aktivovat</button>`
+          <button onclick="window.location.href='/admin/admin-detail-edit.html?id=${id}'">Edit</button>
+          ${archived
+            ? `<button onclick="activateItem('${id}')">Aktivovat</button>`
             : `<button onclick="archiveItem('${id}')">Archivovat</button>`}
           <button onclick="deleteItem('${id}')">Vymazat</button>
-          <button onclick="window.open('/detail.html?id=${id}','_blank')">Test detail</button>
         </div>
       </div>
     `;
@@ -70,3 +68,15 @@ export function renderItemGrid(data, options) {
     itemList.innerHTML = "<p>Žádné položky k zobrazení.</p>";
   }
 }
+
+function getSelectedCategories(container) {
+  const checkboxes = container.querySelectorAll("input[type=checkbox]:checked");
+  const selected = Array.from(checkboxes).map(cb => cb.value);
+  return selected.includes("Všechny") ? [] : selected;
+}
+
+function today() {
+  return new Date().toISOString().split("T")[0];
+}
+
+export { fetchItems, renderItemGrid, isArchived, isActive };
