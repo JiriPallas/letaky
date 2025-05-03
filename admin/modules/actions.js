@@ -38,8 +38,11 @@ function downloadImage(url) {
   document.body.removeChild(link);
 }
 
-// Exponera funktioner globalt
+// Exponera globalt
 window.archiveItem = archiveItem;
 window.activateItem = activateItem;
 window.shareItem = shareItem;
 window.downloadImage = downloadImage;
+
+// Exportera också
+export { archiveItem, activateItem, shareItem, downloadImage };
