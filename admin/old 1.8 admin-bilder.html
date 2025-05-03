@@ -1,10 +1,10 @@
-<!-- admin/admin-bilder.html v1.9 -->
+<!-- admin/admin-bilder.html v1.8 -->
 <!DOCTYPE html>
 <html lang="cs">
 <head>
   <script>
     const FILE_NAME = "letaky.netlify.app/admin/admin-bilder.html";
-    const FILE_VERSION = "v. 1.9";
+    const FILE_VERSION = "v. 1.8";
   </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -101,14 +101,14 @@
     <div class="checkbox-group" id="categoryFilters"></div>
     <a href="/admin/" class="nav-button">Nový záznam</a>
     <a href="#" class="nav-button">Vytvoř video</a>
-    <div id="versionInfo">letaky.netlify.app/admin/admin-bilder.html v. 1.9</div>
+    <div id="versionInfo">letaky.netlify.app/admin/admin-bilder.html v. 1.8</div>
   </div>
   <div class="output">
     <div class="grid" id="itemList"><p>Načítání…</p></div>
   </div>
   <script type="module">
     import { db } from './modules/firebase-init.js';
-    import { fetchItems } from './modules/helpers.js';
+    import { fetchItems, renderItemGrid } from './modules/helpers.js';
     import { archiveItem, activateItem, deleteItem } from './modules/actions.js';
 
     document.getElementById("versionInfo").textContent = `${FILE_NAME} ${FILE_VERSION}`;
