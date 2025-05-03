@@ -1,4 +1,4 @@
-// admin/modules/helpers.js v1.4
+// admin/modules/helpers.js v1.5
 import { ref, onValue } from './firebase-init.js';
 
 function fetchItems(callback) {
