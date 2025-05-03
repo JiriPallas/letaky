@@ -1,13 +1,15 @@
-// actions.js – globala funktioner för knappar i admin
+// actions.js – globala funktioner för admin-knappar
 
-export function archiveItem(id, db) {
+import { ref, update } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+import { db } from './firebase-init.js';
+
+function archiveItem(id) {
   if (!db) return console.warn("Firebase DB saknas");
-  const { ref, update } = await import("https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js");
   const itemRef = ref(db, `items/${id}`);
   update(itemRef, { archive: true });
 }
 
-export function shareItem(item) {
+function shareItem(item) {
   const shareData = {
     title: item.category,
     text: item.description,
@@ -21,7 +23,7 @@ ${shareData.url}`);
   }
 }
 
-export function downloadImage(url) {
+function downloadImage(url) {
   const link = document.createElement('a');
   link.href = url;
   link.download = 'nabidka.jpg';
@@ -30,7 +32,7 @@ export function downloadImage(url) {
   document.body.removeChild(link);
 }
 
-// Gör funktioner tillgängliga globalt
+// Exponera funktioner globalt
 window.archiveItem = archiveItem;
 window.shareItem = shareItem;
 window.downloadImage = downloadImage;
