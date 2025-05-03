@@ -1,6 +1,6 @@
 [build]
-  publish = "letaky"
+  publish = "."
   command = ""
 
-[context.production]
-  branch = "master"
+[functions]
+  directory = "netlify/functions"
