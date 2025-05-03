@@ -1,17 +1,27 @@
-// admin/modules/actions.js v1.2
-import { db, ref, update, remove } from './firebase-init.js';
+// admin/modules/actions.js v1.3
+import { ref, update, remove } from './firebase-init.js';
 
-export function archiveItem(id) {
-  const itemRef = ref(db, `items/${id}`);
-  return update(itemRef, { archive: true });
+function archiveItem(id) {
+  const itemRef = ref(window.db, `items/${id}`);
+  update(itemRef, { archive: true }).then(() => {
+    console.log(`Archivováno: ${id}`);
+  });
 }
 
-export function activateItem(id) {
-  const itemRef = ref(db, `items/${id}`);
-  return update(itemRef, { archive: false });
+function activateItem(id) {
+  const itemRef = ref(window.db, `items/${id}`);
+  update(itemRef, { archive: false }).then(() => {
+    console.log(`Aktivováno: ${id}`);
+  });
 }
 
-export function deleteItem(id) {
-  const itemRef = ref(db, `items/${id}`);
-  return remove(itemRef);
+function deleteItem(id) {
+  const itemRef = ref(window.db, `items/${id}`);
+  if (confirm("Opravdu chcete smazat tuto položku?")) {
+    remove(itemRef).then(() => {
+      console.log(`Smazáno: ${id}`);
+    });
+  }
 }
+
+export { archiveItem, activateItem, deleteItem };
