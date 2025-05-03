@@ -1,109 +1,101 @@
-<!-- admin/admin-detail-edit.html v1.4 -->
 <!DOCTYPE html>
 <html lang="cs">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Editace záznamu</title>
   <script>
     const FILE_NAME = "letaky.netlify.app/admin/admin-detail-edit.html";
     const FILE_VERSION = "v. 1.4";
   </script>
-  <script type="module">
-    import { db, ref, update, onValue, remove } from './modules/firebase-init.js';
-
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get("id");
-    if (!id) {
-      document.body.innerHTML = "<p>Chyba: chybí ID.</p>";
-      throw new Error("Missing ID");
+  <script type="module" src="./modules/firebase-init.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      background: #f7f7f7;
+      max-width: 600px;
+      margin: auto;
     }
 
-    const itemRef = ref(db, `items/${id}`);
-    onValue(itemRef, (snapshot) => {
-      const item = snapshot.val();
-      if (!item) return;
+    form {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
 
-      document.getElementById("imageUrl").value = item.imageUrl || "";
-      document.getElementById("category").value = item.category || "";
-      document.getElementById("price").value = item.price || 0;
-      document.getElementById("description").value = item.description || "";
-      document.getElementById("fromDate").value = item.fromDate || "";
-      document.getElementById("toDate").value = item.toDate || "";
-      document.getElementById("imgPreview").src = item.imageUrl || "";
-      document.getElementById("qr").src = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://hittv.netlify.app/detail.html?id=${id}`;
+    input, textarea, select {
+      width: 100%;
+      padding: 0.5rem;
+      margin-bottom: 1rem;
+      font-size: 1rem;
+    }
 
-      // Visa bara pris för zbozi
-      const priceWrapper = document.getElementById("price-wrapper");
-      priceWrapper.style.display = item.type === "zbozi" ? "block" : "none";
-    });
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 0.3rem;
+    }
 
-    window.saveItem = async () => {
-      const updated = {
-        imageUrl: document.getElementById("imageUrl").value,
-        category: document.getElementById("category").value,
-        price: parseFloat(document.getElementById("price").value),
-        description: document.getElementById("description").value,
-        fromDate: document.getElementById("fromDate").value,
-        toDate: document.getElementById("toDate").value,
-        archive: false
-      };
-      await update(ref(db, `items/${id}`), updated);
-      alert("Záznam uložen.");
-      window.location.href = "/admin/admin-bilder.html";
-    };
+    img {
+      max-width: 100%;
+      margin-bottom: 1rem;
+    }
 
-    window.archiveItem = async () => {
-      await update(ref(db, `items/${id}`), { archive: true });
-      alert("Záznam archivován.");
-      window.location.href = "/admin/admin-bilder.html";
-    };
+    .top-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
 
-    window.deleteItem = async () => {
-      if (confirm("Opravdu chcete záznam smazat?")) {
-        await remove(ref(db, `items/${id}`));
-        alert("Záznam odstraněn.");
-        window.location.href = "/admin/admin-bilder.html";
-      }
-    };
-  </script>
-  <style>
-    body { font-family: sans-serif; padding: 2rem; background: #f9f9f9; }
-    form { max-width: 600px; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
-    input, textarea, select { width: 100%; margin-bottom: 1rem; padding: 0.5rem; font-size: 1rem; }
-    button { padding: 0.5rem 1rem; margin-right: 1rem; }
-    img { display: block; margin-top: 1rem; max-width: 100%; }
-    .footer { margin-top: 2rem; font-size: 0.9rem; color: #666; }
-    .top-buttons { margin-top: 2rem; }
+    .top-buttons button {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+    }
+
+    #versionInfo {
+      font-size: 0.9rem;
+      color: #666;
+      text-align: center;
+      margin-top: 2rem;
+    }
   </style>
 </head>
 <body>
-  <form onsubmit="event.preventDefault(); saveItem();">
+  <form id="editForm">
     <h1>Editace záznamu</h1>
+
+    <div class="top-buttons" id="buttonBar">
+      <button type="submit">Uložit</button>
+      <button type="button" id="archiveBtn">...</button>
+      <button type="button" onclick="deleteItem()">Vymazat</button>
+      <a href="/admin/admin-bilder.html"><button type="button">Zpět na Admin</button></a>
+    </div>
+
+    <img id="imagePreview" src="" alt="náhled" />
 
     <label for="imageUrl">Adresa obrázku</label>
     <input type="url" id="imageUrl" required>
 
-    <img id="imgPreview" src="" alt="náhled obrázku" />
-
     <label for="category">Kategorie</label>
     <select id="category" required>
-      <option value="Potraviny">Potraviny</option>
-      <option value="Motorová vozidla">Motorová vozidla</option>
-      <option value="Bydlení">Bydlení</option>
-      <option value="Šaty">Šaty</option>
-      <option value="Sportovní potřeby">Sportovní potřeby</option>
-      <option value="Elektronika">Elektronika</option>
-      <option value="Ostatní">Ostatní</option>
+      <option>Ostatní</option>
+      <option>Potraviny</option>
+      <option>Motorová vozidla</option>
+      <option>Bydlení</option>
+      <option>Šaty</option>
+      <option>Sportovní potřeby</option>
+      <option>Elektronika</option>
     </select>
 
-    <div id="price-wrapper">
+    <div id="priceWrapper" style="display:none;">
       <label for="price">Cena (Kč)</label>
       <input type="number" id="price" min="0">
     </div>
 
     <label for="description">Popis</label>
-    <textarea id="description" rows="3" required></textarea>
+    <textarea id="description" required></textarea>
 
     <label for="fromDate">Zobrazit od</label>
     <input type="date" id="fromDate" required>
@@ -111,20 +103,95 @@
     <label for="toDate">Zobrazit do</label>
     <input type="date" id="toDate" required>
 
-    <img id="qr" alt="QR kód">
-
-    <div class="top-buttons">
-      <button type="submit">Uložit</button>
-      <button type="button" onclick="archiveItem()">Archivovat</button>
-      <button type="button" onclick="deleteItem()">Vymazat</button>
-      <a href="/admin/admin-bilder.html"><button type="button">Zpět na Admin</button></a>
-    </div>
-
-    <div class="footer" id="versionFooter"></div>
+    <input type="hidden" id="itemType" />
   </form>
 
-  <script>
-    document.getElementById("versionFooter").textContent = `${FILE_NAME} ${FILE_VERSION}`;
+  <div id="versionInfo"></div>
+
+  <script type="module">
+    import { db, ref, onValue, update, remove } from './modules/firebase-init.js';
+
+    const FILE_NAME = "letaky.netlify.app/admin/admin-detail-edit.html";
+    const FILE_VERSION = "v. 1.4";
+    document.getElementById("versionInfo").textContent = `${FILE_NAME} ${FILE_VERSION}`;
+
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id");
+    const refItem = ref(db, `items/${id}`);
+
+    const imageUrl = document.getElementById("imageUrl");
+    const category = document.getElementById("category");
+    const price = document.getElementById("price");
+    const description = document.getElementById("description");
+    const fromDate = document.getElementById("fromDate");
+    const toDate = document.getElementById("toDate");
+    const imagePreview = document.getElementById("imagePreview");
+    const priceWrapper = document.getElementById("priceWrapper");
+    const archiveBtn = document.getElementById("archiveBtn");
+
+    let currentItem = null;
+
+    function updateArchiveButton(archive) {
+      if (archive) {
+        archiveBtn.textContent = "Aktivovat";
+        archiveBtn.onclick = () => activateItem(id);
+      } else {
+        archiveBtn.textContent = "Archivovat";
+        archiveBtn.onclick = () => archiveItem(id);
+      }
+    }
+
+    function showPrice(type) {
+      priceWrapper.style.display = (type === 'zbozi') ? 'block' : 'none';
+    }
+
+    onValue(refItem, (snapshot) => {
+      const item = snapshot.val();
+      if (!item) return alert("Záznam nenalezen");
+      currentItem = item;
+
+      imageUrl.value = item.imageUrl;
+      category.value = item.category;
+      price.value = item.price || 0;
+      description.value = item.description;
+      fromDate.value = item.fromDate;
+      toDate.value = item.toDate;
+      document.getElementById("itemType").value = item.type;
+
+      imagePreview.src = item.imageUrl;
+      showPrice(item.type);
+      updateArchiveButton(item.archive);
+    });
+
+    document.getElementById("editForm").addEventListener("submit", e => {
+      e.preventDefault();
+      const updated = {
+        imageUrl: imageUrl.value,
+        category: category.value,
+        price: parseFloat(price.value) || 0,
+        description: description.value,
+        fromDate: fromDate.value,
+        toDate: toDate.value
+      };
+      update(refItem, updated).then(() => {
+        alert("Uloženo.");
+        window.location.href = "/admin/admin-bilder.html";
+      });
+    });
+
+    window.archiveItem = () => {
+      update(refItem, { archive: true }).then(() => location.reload());
+    };
+
+    window.activateItem = () => {
+      update(refItem, { archive: false }).then(() => location.reload());
+    };
+
+    window.deleteItem = () => {
+      if (confirm("Opravdu chcete vymazat tento záznam?")) {
+        remove(refItem).then(() => window.location.href = "/admin/admin-bilder.html");
+      }
+    };
   </script>
 </body>
 </html>
