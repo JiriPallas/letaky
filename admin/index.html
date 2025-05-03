@@ -1,4 +1,4 @@
-<!-- admin/index.html v. 1.12 -->
+<!-- admin/index.html v1.13 -->
 <!DOCTYPE html>
 <html lang="cs">
 <head>
@@ -7,7 +7,7 @@
   <title>Admin Panel</title>
   <script>
     const FILE_NAME = "letaky.netlify.app/admin/index.html";
-    const FILE_VERSION = "v. 1.12";
+    const FILE_VERSION = "v. 1.13";
   </script>
   <script type="module" src="./firebase-admin.js"></script>
   <style>
@@ -19,34 +19,13 @@
     .radio-group label { font-weight: normal; display: flex; align-items: center; gap: 0.3rem; margin-top: 0; }
     button { padding: 0.5rem 1rem; font-size: 1rem; margin-right: 1rem; }
     #preview { flex: 1; background: #fff; padding: 1rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.05); overflow: auto; }
-    #snackbar {
-      visibility: hidden;
-      min-width: 250px;
-      background-color: #333;
-      color: #fff;
-      text-align: center;
-      border-radius: 2px;
-      padding: 16px;
-      position: fixed;
-      z-index: 1;
-      left: 50%;
-      bottom: 30px;
-      transform: translateX(-50%);
-      font-size: 17px;
-    }
-    #snackbar.show {
-      visibility: visible;
-      animation: fadein 0.5s, fadeout 0.5s 2.5s;
-    }
-    @keyframes fadein { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
-    @keyframes fadeout { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
     footer { text-align: center; font-size: 0.9rem; color: #666; margin-top: 2rem; }
   </style>
 </head>
 <body>
   <form id="uploadForm">
     <h1>Nový záznam</h1>
-    <div style="font-size: 0.9rem; color: #888;">letaky.netlify.app/admin/index.html v. 1.12</div>
+    <div style="font-size: 0.8rem; color: #888;">letaky.netlify.app/admin/index.html v. 1.13</div>
 
     <label for="imageUrl">Adresa obrázku</label>
     <input type="url" id="imageUrl" value="https://via.placeholder.com/300" required>
@@ -77,111 +56,87 @@
     <label for="description">Popis</label>
     <textarea id="description" required>Bez popisu</textarea>
 
-    <label for="fromOffset">Začít ukazovat za dní</label>
-    <input type="number" id="fromOffset" value="0" min="0">
+    <label for="fromDate">Zobrazit od</label>
+    <input type="date" id="fromDate" required>
 
     <label for="daysVisible">Počet dní zobrazení</label>
     <input type="number" id="daysVisible" value="30" min="1">
 
-    <label>Zobrazit:</label>
-    <div id="dateRange">–</div>
+    <label for="toDate">Zobrazit do</label>
+    <input type="date" id="toDate" required readonly onfocus="this.blur()">
 
     <button type="submit">Uložit</button>
-    <a href="./admin-bilder.html" style="text-decoration:none;"><button type="button">Aktivní položky</button></a>
-
-    <footer id="footerText"></footer>
+    <a href="/admin/admin-bilder.html" style="text-decoration:none;"><button type="button">Aktivní položky</button></a>
   </form>
 
   <div id="preview"></div>
-  <div id="snackbar">Záznam uložen!</div>
 
   <script type="module">
     import { db, pushData, isValidItem } from './firebase-admin.js';
 
-    const FILE_VERSION = "v. 1.12";
-    const FILE_NAME = "letaky.netlify.app/admin/index.html";
-    document.getElementById("footerText").textContent = FILE_NAME + " " + FILE_VERSION;
-
     const priceWrapper = document.getElementById('priceWrapper');
     const typeRadios = document.getElementsByName('type');
-    const fromOffset = document.getElementById('fromOffset');
-    const daysVisible = document.getElementById('daysVisible');
-    const dateRange = document.getElementById('dateRange');
-
     typeRadios.forEach(r => r.addEventListener('change', () => {
       priceWrapper.style.display = document.querySelector('input[name="type"]:checked').value === 'zbozi' ? 'block' : 'none';
     }));
 
-    function updateDateRange() {
-      const offset = parseInt(fromOffset.value) || 0;
-      const days = parseInt(daysVisible.value) || 30;
-      const from = new Date();
-      from.setDate(from.getDate() + offset);
-      const to = new Date(from);
-      to.setDate(to.getDate() + days);
-      const fmt = d => d.toISOString().split("T")[0];
-      dateRange.textContent = `${fmt(from)} – ${fmt(to)}`;
-      return { fromDate: fmt(from), toDate: fmt(to) };
+    function setDefaultDates() {
+      const today = new Date();
+      const isoToday = today.toISOString().split("T")[0];
+      document.getElementById('fromDate').value = isoToday;
+
+      const days = parseInt(document.getElementById('daysVisible').value) || 30;
+      const toDate = new Date(today);
+      toDate.setDate(toDate.getDate() + days);
+      document.getElementById('toDate').value = toDate.toISOString().split("T")[0];
     }
 
-    fromOffset.addEventListener('input', updateDateRange);
-    daysVisible.addEventListener('input', updateDateRange);
-    updateDateRange();
-
-    function showSnackbar(msg = "Záznam uložen!") {
-      const bar = document.getElementById("snackbar");
-      bar.textContent = msg;
-      bar.className = "show";
-      setTimeout(() => bar.className = bar.className.replace("show", ""), 3000);
-    }
+    document.getElementById('daysVisible').addEventListener('input', setDefaultDates);
+    setDefaultDates();
 
     function renderPreview(item) {
-      const html = `
+      document.getElementById('preview').innerHTML = `
         <h2>Náhled:</h2>
         <p><img src="${item.imageUrl}" alt="náhled" style="max-width:100%;"></p>
         <p><strong>Kategorie:</strong> ${item.category}</p>
         <p><strong>Typ:</strong> ${item.type}</p>
-        <p><strong>Cena:</strong> ${item.price} Kč</p>
+        ${item.type === "zbozi" ? `<p><strong>Cena:</strong> ${item.price} Kč</p>` : ""}
         <p><strong>Popis:</strong> ${item.description}</p>
         <p><strong>Od:</strong> ${item.fromDate}</p>
         <p><strong>Do:</strong> ${item.toDate}</p>
       `;
-      document.getElementById("preview").innerHTML = html;
     }
 
-    document.getElementById("uploadForm").addEventListener("submit", async e => {
+    document.getElementById('uploadForm').addEventListener('submit', async e => {
       e.preventDefault();
-      const { fromDate, toDate } = updateDateRange();
       const item = {
         imageUrl: document.getElementById('imageUrl').value,
         category: document.getElementById('category').value,
         type: document.querySelector('input[name="type"]:checked').value,
         price: parseFloat(document.getElementById('price').value) || 0,
         description: document.getElementById('description').value,
-        fromDate,
-        toDate,
+        fromDate: document.getElementById('fromDate').value,
+        toDate: document.getElementById('toDate').value,
         archive: false
       };
 
       if (!isValidItem(item)) {
-        showSnackbar("Chybná data!");
+        alert("Neplatná data!");
         return;
       }
 
       try {
-        const id = await pushData(item);
-        item.id = id;
+        await pushData(item);
         renderPreview(item);
-        showSnackbar();
-        document.getElementById("uploadForm").reset();
-        document.getElementById("imageUrl").value = "https://via.placeholder.com/300";
-        document.getElementById("description").value = "Bez popisu";
-        document.getElementById("category").value = "Ostatní";
+        document.getElementById('uploadForm').reset();
+        document.getElementById('imageUrl').value = "https://via.placeholder.com/300";
+        document.getElementById('description').value = "Bez popisu";
+        document.getElementById('category').value = "Ostatní";
         document.querySelector('input[name="type"][value="letak"]').checked = true;
-        updateDateRange();
+        setDefaultDates();
       } catch (err) {
         console.error(err);
-        showSnackbar("Nepodařilo se uložit.");
+        alert("Nepodařilo se uložit.");
       }
     });
   </script>
