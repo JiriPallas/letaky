@@ -1,21 +1,32 @@
-<!-- admin/admin-bilder.html v1.9 -->
+<!-- admin/admin-bilder.html v. 1.9 -->
 <!DOCTYPE html>
 <html lang="cs">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin – Aktivní položky</title>
   <script>
     const FILE_NAME = "letaky.netlify.app/admin/admin-bilder.html";
     const FILE_VERSION = "v. 1.9";
   </script>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin – Aktivní položky</title>
-  <script type="module" src="./modules/firebase-init.js"></script>
-  <script type="module" src="./modules/helpers.js"></script>
-  <script type="module" src="./modules/actions.js"></script>
   <style>
-    body { font-family: sans-serif; padding: 2rem; background: #f7f7f7; display: flex; gap: 2rem; }
-    .controls { flex: 0 0 250px; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    .output { flex: 1; }
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      background: #f7f7f7;
+      display: flex;
+      gap: 2rem;
+    }
+    .controls {
+      flex: 0 0 250px;
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .output {
+      flex: 1;
+    }
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -29,24 +40,13 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      min-height: 360px;
     }
     .item img.preview {
       max-width: 100%;
       border-radius: 4px;
-      cursor: pointer;
     }
-    .info-wrapper { margin-top: auto; }
-    .info {
-      display: flex;
-      gap: 1rem;
-      margin-top: 1rem;
-      align-items: flex-start;
-    }
-    .qr img {
-      width: 70px;
-      height: 70px;
-    }
+    .info { display: flex; gap: 1rem; margin-top: 1rem; align-items: flex-start; }
+    .qr img { width: 70px; height: 70px; }
     .text { flex: 1; font-size: 0.95rem; }
     .label { font-weight: bold; display: block; }
     .actions {
@@ -55,14 +55,10 @@
       gap: 0.5rem;
       margin-top: 0.5rem;
     }
-    .actions a, .actions button {
+    .actions button {
       padding: 0.3rem 0.8rem;
       font-size: 0.9rem;
       cursor: pointer;
-      text-decoration: none;
-      border: none;
-      background: #eee;
-      border-radius: 4px;
     }
     label {
       display: block;
@@ -106,14 +102,130 @@
   <div class="output">
     <div class="grid" id="itemList"><p>Načítání…</p></div>
   </div>
+
   <script type="module">
-    import { db } from './modules/firebase-init.js';
-    import { fetchItems } from './modules/helpers.js';
-    import { archiveItem, activateItem, deleteItem } from './modules/actions.js';
+    import { db, ref, onValue, update, remove } from './modules/firebase-init.js';
 
-    document.getElementById("versionInfo").textContent = `${FILE_NAME} ${FILE_VERSION}`;
+    const showActive = document.getElementById("showActive");
+    const showArchived = document.getElementById("showArchived");
+    const categoryFilters = document.getElementById("categoryFilters");
+    const itemList = document.getElementById("itemList");
 
-    fetchItems({ containerId: "itemList", adminMode: true, archiveItem, activateItem, deleteItem });
+    let allItems = {};
+
+    function isTodayInRange(from, to) {
+      const today = new Date().toISOString().split("T")[0];
+      return from <= today && today <= to;
+    }
+
+    function isArchived(item) {
+      const today = new Date().toISOString().split("T")[0];
+      return item.archive === true || item.toDate < today;
+    }
+
+    function isActive(item) {
+      const today = new Date().toISOString().split("T")[0];
+      return item.archive !== true && item.toDate >= today;
+    }
+
+    function getSelectedCategories() {
+      const checkboxes = categoryFilters.querySelectorAll("input[type=checkbox]");
+      const selected = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+      return selected.length === 0 || selected.includes("Všechny") ? [] : selected;
+    }
+
+    function renderCategoryFilters(categories) {
+      const unique = Array.from(new Set(categories));
+      categoryFilters.innerHTML = "";
+
+      const allBox = document.createElement("label");
+      allBox.innerHTML = `<input type="checkbox" value="Všechny" checked> Všechny kategorie`;
+      categoryFilters.appendChild(allBox);
+
+      unique.forEach(cat => {
+        const label = document.createElement("label");
+        label.innerHTML = `<input type="checkbox" value="${cat}"> ${cat}`;
+        categoryFilters.appendChild(label);
+      });
+
+      categoryFilters.querySelectorAll("input").forEach(cb => {
+        cb.addEventListener("change", () => renderItems(allItems));
+      });
+    }
+
+    async function archiveItem(id) {
+      await update(ref(db, `items/${id}`), { archive: true });
+    }
+
+    async function activateItem(id) {
+      await update(ref(db, `items/${id}`), { archive: false });
+    }
+
+    async function deleteItem(id) {
+      if (confirm("Opravdu smazat?")) {
+        await remove(ref(db, `items/${id}`));
+      }
+    }
+
+    function renderItems(data) {
+      itemList.innerHTML = "";
+      const entries = Object.entries(data || {});
+      const selectedCats = getSelectedCategories();
+      let count = 0;
+
+      entries.forEach(([id, item]) => {
+        if (!isTodayInRange(item.fromDate, item.toDate)) return;
+        if (isArchived(item) && !showArchived.checked) return;
+        if (isActive(item) && !showActive.checked) return;
+        if (selectedCats.length > 0 && !selectedCats.includes(item.category)) return;
+
+        const div = document.createElement("div");
+        div.className = "item";
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://hittv.netlify.app/detail.html?id=${id}`;
+
+        div.innerHTML = `
+          <img src="${item.imageUrl}" class="preview">
+          <div class="info">
+            <div class="qr"><img src="${qrUrl}" alt="QR"></div>
+            <div class="text">
+              <div><span class="label">Kategorie:</span> ${item.category}</div>
+              <div><span class="label">Popis:</span> ${item.description}</div>
+              ${item.type === "zbozi" ? `<div><span class="label">Cena:</span> ${item.price} Kč</div>` : ""}
+            </div>
+          </div>
+          <div class="actions">
+            <button onclick="location.href='/admin/admin-detail-edit.html?id=${id}'">Edit</button>
+            ${isArchived(item)
+              ? `<button onclick="activateItem('${id}')">Aktivovat</button>`
+              : `<button onclick="archiveItem('${id}')">Archivovat</button>`}
+            <button onclick="deleteItem('${id}')">Vymazat</button>
+            <button onclick="navigator.share ? navigator.share({ url: 'https://hittv.netlify.app/detail.html?id=${id}' }) : alert('Zkopírujte odkaz: https://hittv.netlify.app/detail.html?id=${id}')">Sdílet</button>
+          </div>
+        `;
+
+        itemList.appendChild(div);
+        count++;
+      });
+
+      if (count === 0) {
+        itemList.innerHTML = "<p>Žádné položky k zobrazení.</p>";
+      }
+    }
+
+    function setupListeners() {
+      const itemsRef = ref(db, "items");
+      onValue(itemsRef, (snapshot) => {
+        allItems = snapshot.val() || {};
+        const categories = Object.values(allItems).map(i => i.category);
+        renderCategoryFilters(categories);
+        renderItems(allItems);
+      });
+    }
+
+    showActive.addEventListener("change", () => renderItems(allItems));
+    showArchived.addEventListener("change", () => renderItems(allItems));
+
+    setupListeners();
   </script>
 </body>
 </html>
