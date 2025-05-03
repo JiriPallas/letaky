@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <title>Editace záznamu</title>
+  <script>
+    const FILE_NAME = "letaky.netlify.app/admin/admin-detail-edit.html";
+    const FILE_VERSION = "v. 1.4";
+  </script>
+  <script type="module" src="./modules/firebase-init.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      background: #f7f7f7;
+      max-width: 600px;
+      margin: auto;
+    }
+
+    form {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 0.5rem;
+      margin-bottom: 1rem;
+      font-size: 1rem;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 0.3rem;
+    }
+
+    img {
+      max-width: 100%;
+      margin-bottom: 1rem;
+    }
+
+    .top-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .top-buttons button {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+    }
+
+    #versionInfo {
+      font-size: 0.9rem;
+      color: #666;
+      text-align: center;
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <form id="editForm">
+    <h1>Editace záznamu</h1>
+
+    <div class="top-buttons" id="buttonBar">
+      <button type="submit">Uložit</button>
+      <button type="button" id="archiveBtn">...</button>
+      <button type="button" onclick="deleteItem()">Vymazat</button>
+      <a href="/admin/admin-bilder.html"><button type="button">Zpět na Admin</button></a>
+    </div>
+
+    <img id="imagePreview" src="" alt="náhled" />
+
+    <label for="imageUrl">Adresa obrázku</label>
+    <input type="url" id="imageUrl" required>
+
+    <label for="category">Kategorie</label>
+    <select id="category" required>
+      <option>Ostatní</option>
+      <option>Potraviny</option>
+      <option>Motorová vozidla</option>
+      <option>Bydlení</option>
+      <option>Šaty</option>
+      <option>Sportovní potřeby</option>
+      <option>Elektronika</option>
+    </select>
+
+    <div id="priceWrapper" style="display:none;">
+      <label for="price">Cena (Kč)</label>
+      <input type="number" id="price" min="0">
+    </div>
+
+    <label for="description">Popis</label>
+    <textarea id="description" required></textarea>
+
+    <label for="fromDate">Zobrazit od</label>
+    <input type="date" id="fromDate" required>
+
+    <label for="toDate">Zobrazit do</label>
+    <input type="date" id="toDate" required>
+
+    <input type="hidden" id="itemType" />
+  </form>
+
+  <div id="versionInfo"></div>
+
+  <script type="module">
+    import { db, ref, onValue, update, remove } from './modules/firebase-init.js';
+
+    const FILE_NAME = "letaky.netlify.app/admin/admin-detail-edit.html";
+    const FILE_VERSION = "v. 1.4";
+    document.getElementById("versionInfo").textContent = `${FILE_NAME} ${FILE_VERSION}`;
+
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id");
+    const refItem = ref(db, `items/${id}`);
+
+    const imageUrl = document.getElementById("imageUrl");
+    const category = document.getElementById("category");
+    const price = document.getElementById("price");
+    const description = document.getElementById("description");
+    const fromDate = document.getElementById("fromDate");
+    const toDate = document.getElementById("toDate");
+    const imagePreview = document.getElementById("imagePreview");
+    const priceWrapper = document.getElementById("priceWrapper");
+    const archiveBtn = document.getElementById("archiveBtn");
+
+    let currentItem = null;
+
+    function updateArchiveButton(archive) {
+      if (archive) {
+        archiveBtn.textContent = "Aktivovat";
+        archiveBtn.onclick = () => activateItem(id);
+      } else {
+        archiveBtn.textContent = "Archivovat";
+        archiveBtn.onclick = () => archiveItem(id);
+      }
+    }
+
+    function showPrice(type) {
+      priceWrapper.style.display = (type === 'zbozi') ? 'block' : 'none';
+    }
+
+    onValue(refItem, (snapshot) => {
+      const item = snapshot.val();
+      if (!item) return alert("Záznam nenalezen");
+      currentItem = item;
+
+      imageUrl.value = item.imageUrl;
+      category.value = item.category;
+      price.value = item.price || 0;
+      description.value = item.description;
+      fromDate.value = item.fromDate;
+      toDate.value = item.toDate;
+      document.getElementById("itemType").value = item.type;
+
+      imagePreview.src = item.imageUrl;
+      showPrice(item.type);
+      updateArchiveButton(item.archive);
+    });
+
+    document.getElementById("editForm").addEventListener("submit", e => {
+      e.preventDefault();
+      const updated = {
+        imageUrl: imageUrl.value,
+        category: category.value,
+        price: parseFloat(price.value) || 0,
+        description: description.value,
+        fromDate: fromDate.value,
+        toDate: toDate.value
+      };
+      update(refItem, updated).then(() => {
+        alert("Uloženo.");
+        window.location.href = "/admin/admin-bilder.html";
+      });
+    });
+
+    window.archiveItem = () => {
+      update(refItem, { archive: true }).then(() => location.reload());
+    };
+
+    window.activateItem = () => {
+      update(refItem, { archive: false }).then(() => location.reload());
+    };
+
+    window.deleteItem = () => {
+      if (confirm("Opravdu chcete vymazat tento záznam?")) {
+        remove(refItem).then(() => window.location.href = "/admin/admin-bilder.html");
+      }
+    };
+  </script>
+</body>
+</html>
