@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <script>
+    const FILE_NAME = "letaky.netlify.app/admin/admin-bilder.html";
+    const FILE_VERSION = "v. 1.9";
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin – Aktivní položky</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; background: #f7f7f7; display: flex; gap: 2rem; }
+    .controls {
+      flex: 0 0 250px;
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .output { flex: 1; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+    .item {
+      background: white;
+      border-radius: 8px;
+      padding: 1rem;
+      box-shadow: 0 0 8px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 360px;
+    }
+    .item img.preview {
+      max-width: 100%;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .info-wrapper { margin-top: auto; }
+    .info {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+      align-items: flex-start;
+    }
+    .qr img { width: 70px; height: 70px; }
+    .text { flex: 1; font-size: 0.95rem; }
+    .label { font-weight: bold; display: block; }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    .actions button {
+      padding: 0.3rem 0.8rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    label { display: block; margin-bottom: 0.5rem; font-weight: bold; }
+    .checkbox-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    #versionInfo {
+      font-size: 0.9rem;
+      color: #666;
+      margin-top: 2rem;
+    }
+    .nav-button {
+      margin-top: 1rem;
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      background: #007bff;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <h2>Filtr</h2>
+    <div class="checkbox-group">
+      <label><input type="checkbox" id="showActive" checked> Aktivní</label>
+      <label><input type="checkbox" id="showArchived"> Archivované</label>
+    </div>
+    <label>Kategorie</label>
+    <div class="checkbox-group" id="categoryFilters"></div>
+    <a href="/admin/" class="nav-button">Nový záznam</a>
+    <a href="#" class="nav-button">Vytvoř video</a>
+    <div id="versionInfo">letaky.netlify.app/admin/admin-bilder.html v. 1.9</div>
+  </div>
+
+  <div class="output">
+    <div class="grid" id="itemList"><p>Načítání…</p></div>
+  </div>
+
+<script type="module">
+  import { db } from './modules/firebase-init.js';
+  import { isTodayInRange, isActive, isArchived } from './modules/helpers.js';
+  import { archiveItem, activateItem, downloadImage, shareItem } from './modules/actions.js';
+
+  const itemList = document.getElementById("itemList");
+  const showActive = document.getElementById("showActive");
+  const showArchived = document.getElementById("showArchived");
+  const categoryFilters = document.getElementById("categoryFilters");
+
+  let allItems = {};
+
+  function getSelectedCategories() {
+    const checked = categoryFilters.querySelectorAll("input[type=checkbox]:checked");
+    const selected = Array.from(checked).map(cb => cb.value);
+    return selected.includes("Všechny") || selected.length === 0 ? [] : selected;
+  }
+
+  function renderCategoryFilters(categories) {
+    const unique = Array.from(new Set(categories));
+    categoryFilters.innerHTML = "";
+
+    const all = document.createElement("label");
+    all.innerHTML = `<input type="checkbox" value="Všechny" checked> Všechny kategorie`;
+    categoryFilters.appendChild(all);
+
+    unique.forEach(cat => {
+      const label = document.createElement("label");
+      label.innerHTML = `<input type="checkbox" value="${cat}"> ${cat}`;
+      categoryFilters.appendChild(label);
+    });
+
+    categoryFilters.addEventListener("change", () => renderItems(allItems));
+  }
+
+  function renderItems(data) {
+    itemList.innerHTML = "";
+    const entries = Object.entries(data || {});
+    const selectedCats = getSelectedCategories();
+    let count = 0;
+
+    entries.forEach(([id, item]) => {
+      item.id = id;
+      if (!isTodayInRange(item.fromDate, item.toDate)) return;
+      if (isArchived(item) && !showArchived.checked) return;
+      if (isActive(item) && !showActive.checked) return;
+      if (selectedCats.length > 0 && !selectedCats.includes(item.category)) return;
+
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://letaky.netlify.app/detail.html?id=${id}`;
+      const div = document.createElement("div");
+      div.className = "item";
+
+      div.innerHTML = `
+        <img src="${item.imageUrl}" class="preview" onclick="window.location.href='/detail.html?id=${id}'">
+        <div class="info-wrapper">
+          <div class="info">
+            <div class="qr"><img src="${qrUrl}" alt="QR kód"></div>
+            <div class="text">
+              <span class="label">Kategorie:</span> ${item.category}<br>
+              <span class="label">Popis:</span> ${item.description}<br>
+              ${item.type === 'zbozi' ? `<span class="label">Cena:</span> ${item.price} Kč` : ""}
+            </div>
+          </div>
+        </div>
+        <div class="actions">
+          ${item.archive === true || item.toDate < new Date().toISOString().split("T")[0]
+            ? `<button onclick="activateItem('${id}')">Aktivovat</button>`
+            : `<button onclick="archiveItem('${id}')">Archivovat</button>`
+          }
+          <button onclick="downloadImage('${item.imageUrl}')">Uložit</button>
+          <button onclick="shareItem('${id}')">Sdílet</button>
+          <a href="/admin-detail-edit.html?id=${id}"><button>Edit</button></a>
+        </div>
+      `;
+      itemList.appendChild(div);
+      count++;
+    });
+
+    if (count === 0) {
+      itemList.innerHTML = "<p>Žádné položky k zobrazení.</p>";
+    }
+  }
+
+  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+  const refData = ref(db, "items");
+  onValue(refData, (snapshot) => {
+    const data = snapshot.val();
+    allItems = data || {};
+    const categories = Object.values(allItems).map(i => i.category);
+    renderCategoryFilters(categories);
+    renderItems(allItems);
+  });
+
+  [showActive, showArchived].forEach(cb => cb.addEventListener("change", () => renderItems(allItems)));
+</script>
+</body>
+</html>
