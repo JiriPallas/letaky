@@ -9,6 +9,12 @@ function archiveItem(id) {
   update(itemRef, { archive: true });
 }
 
+function activateItem(id) {
+  if (!db) return console.warn("Firebase DB saknas");
+  const itemRef = ref(db, `items/${id}`);
+  update(itemRef, { archive: false });
+}
+
 function shareItem(item) {
   const shareData = {
     title: item.category,
@@ -34,5 +40,6 @@ function downloadImage(url) {
 
 // Exponera funktioner globalt
 window.archiveItem = archiveItem;
+window.activateItem = activateItem;
 window.shareItem = shareItem;
 window.downloadImage = downloadImage;
