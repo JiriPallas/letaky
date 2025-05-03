@@ -1,57 +1,30 @@
+<!-- admin/admin-detail-edit.html v1.1 -->
 <!DOCTYPE html>
 <html lang="cs">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Úprava záznamu</title>
+  <title>Editace položky</title>
+  <script>
+    const FILE_NAME = "letaky.netlify.app/admin/admin-detail-edit.html";
+    const FILE_VERSION = "v. 1.1";
+  </script>
+  <script type="module" src="./modules/firebase-init.js"></script>
+  <script type="module" src="./modules/helpers.js"></script>
+  <script type="module" src="./modules/actions.js"></script>
   <style>
-    body {
-      font-family: sans-serif;
-      padding: 2rem;
-      background: #f7f7f7;
-      max-width: 600px;
-      margin: auto;
-    }
-    form {
-      background: white;
-      padding: 1.5rem;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    input, textarea, select {
-      width: 100%;
-      margin-bottom: 1rem;
-      padding: 0.5rem;
-      font-size: 1rem;
-    }
-    label {
-      font-weight: bold;
-      display: block;
-      margin-bottom: 0.3rem;
-    }
-    .buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      margin-top: 1rem;
-    }
-    button {
-      padding: 0.5rem 1rem;
-      font-size: 1rem;
-      cursor: pointer;
-    }
-    button.delete {
-      background: #c00;
-      color: white;
-    }
-    button.archive {
-      background: #666;
-      color: white;
-    }
+    body { font-family: sans-serif; padding: 2rem; max-width: 600px; margin: auto; background: #f7f7f7; }
+    h1 { margin-bottom: 1rem; }
+    label { font-weight: bold; margin-top: 1rem; display: block; }
+    input, textarea, select, button { width: 100%; margin-bottom: 1rem; padding: 0.5rem; font-size: 1rem; }
+    .button-row { display: flex; gap: 1rem; }
+    footer { text-align: center; font-size: 0.9rem; color: #666; margin-top: 2rem; }
   </style>
 </head>
 <body>
-  <h1>Úprava záznamu</h1>
+  <h1>Editace položky</h1>
+  <div style="font-size: 0.8rem; color: #888;">letaky.netlify.app/admin/admin-detail-edit.html v. 1.1</div>
+
   <form id="editForm">
     <label for="imageUrl">Adresa obrázku</label>
     <input type="url" id="imageUrl" required>
@@ -67,14 +40,11 @@
       <option>Elektronika</option>
     </select>
 
-    <label>Typ položky</label>
-    <input type="text" id="type" disabled>
+    <label for="description">Popis</label>
+    <textarea id="description" required></textarea>
 
     <label for="price">Cena (Kč)</label>
     <input type="number" id="price" min="0">
-
-    <label for="description">Popis</label>
-    <textarea id="description" required></textarea>
 
     <label for="fromDate">Zobrazit od</label>
     <input type="date" id="fromDate" required>
@@ -82,81 +52,67 @@
     <label for="toDate">Zobrazit do</label>
     <input type="date" id="toDate" required>
 
-    <div class="buttons">
+    <div class="button-row">
       <button type="submit">Uložit změny</button>
-      <button type="button" class="archive" id="archiveBtn">Archivovat</button>
-      <button type="button" class="delete" id="deleteBtn">Vymazat</button>
+      <button type="button" id="btnArchivovat">Archivovat</button>
+      <button type="button" id="btnVymazat">Vymazat</button>
     </div>
   </form>
 
+  <footer id="footerText"></footer>
+
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-    import { getDatabase, ref, get, update, remove } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+    import { db } from './modules/firebase-init.js';
+    import { getItemById, updateItem, archiveItem, deleteItem } from './modules/actions.js';
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyCFlTsn1ESQddd_7Neq-W6LBGRiT92c-5w",
-      authDomain: "letaky-aa6ab.firebaseapp.com",
-      databaseURL: "https://letaky-aa6ab-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "letaky-aa6ab",
-      storageBucket: "letaky-aa6ab.firebasestorage.app",
-      messagingSenderId: "814346215288",
-      appId: "1:814346215288:web:445f9700dac9b81cd8f28d"
-    };
+    const FILE_NAME = "letaky.netlify.app/admin/admin-detail-edit.html";
+    const FILE_VERSION = "v. 1.1";
+    document.getElementById("footerText").textContent = `${FILE_NAME} ${FILE_VERSION}`;
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+    const urlParams = new URLSearchParams(window.location.search);
+    const itemId = urlParams.get("id");
 
-    const id = new URLSearchParams(window.location.search).get("id");
-    if (!id) {
-      alert("Chybí ID položky");
-      throw new Error("Chybí ID");
-    }
-
-    const form = document.getElementById("editForm");
-    const fields = ["imageUrl", "category", "type", "price", "description", "fromDate", "toDate"];
-    const itemRef = ref(db, "items/" + id);
-
-    get(itemRef).then(snapshot => {
-      if (!snapshot.exists()) {
-        alert("Záznam nenalezen.");
+    async function loadItem() {
+      const item = await getItemById(itemId);
+      if (!item) {
+        alert("Položka nenalezena.");
         return;
       }
-      const item = snapshot.val();
-      fields.forEach(f => {
-        document.getElementById(f).value = item[f] || "";
-      });
-    });
 
-    form.addEventListener("submit", async e => {
+      document.getElementById("imageUrl").value = item.imageUrl || "";
+      document.getElementById("category").value = item.category || "Ostatní";
+      document.getElementById("description").value = item.description || "";
+      document.getElementById("price").value = item.price || 0;
+      document.getElementById("fromDate").value = item.fromDate || "";
+      document.getElementById("toDate").value = item.toDate || "";
+    }
+
+    loadItem();
+
+    document.getElementById("editForm").addEventListener("submit", async e => {
       e.preventDefault();
-      const updated = {};
-      fields.forEach(f => {
-        if (f !== "type") {
-          updated[f] = document.getElementById(f).value;
-        }
-      });
-      try {
-        await update(itemRef, updated);
-        alert("Záznam byl aktualizován.");
-        window.location.href = "/admin/admin-bilder.html";
-      } catch (err) {
-        console.error(err);
-        alert("Chyba při ukládání.");
-      }
+      const updatedItem = {
+        imageUrl: document.getElementById("imageUrl").value,
+        category: document.getElementById("category").value,
+        description: document.getElementById("description").value,
+        price: parseFloat(document.getElementById("price").value) || 0,
+        fromDate: document.getElementById("fromDate").value,
+        toDate: document.getElementById("toDate").value,
+        archive: false
+      };
+      await updateItem(itemId, updatedItem);
+      alert("Změny byly uloženy.");
     });
 
-    document.getElementById("archiveBtn").addEventListener("click", async () => {
-      if (confirm("Opravdu chcete archivovat tento záznam?")) {
-        await update(itemRef, { archive: true });
-        alert("Záznam byl archivován.");
-        window.location.href = "/admin/admin-bilder.html";
-      }
+    document.getElementById("btnArchivovat").addEventListener("click", async () => {
+      await archiveItem(itemId);
+      alert("Položka byla archivována.");
     });
 
-    document.getElementById("deleteBtn").addEventListener("click", async () => {
-      if (confirm("Opravdu chcete smazat tento záznam?")) {
-        await remove(itemRef);
-        alert("Záznam byl smazán.");
+    document.getElementById("btnVymazat").addEventListener("click", async () => {
+      if (confirm("Opravdu chcete položku smazat?")) {
+        await deleteItem(itemId);
+        alert("Položka byla smazána.");
         window.location.href = "/admin/admin-bilder.html";
       }
     });
