@@ -1,35 +1,36 @@
-import { ref, update } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
-import { db } from './firebase-init.js';
+// actions.js – globala funktioner för knappar i admin
 
-export function archiveItem(id) {
+export function archiveItem(id, db) {
+  if (!db) return console.warn("Firebase DB saknas");
+  const { ref, update } = await import("https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js");
   const itemRef = ref(db, `items/${id}`);
   update(itemRef, { archive: true });
 }
 
-export function activateItem(id) {
-  const itemRef = ref(db, `items/${id}`);
-  update(itemRef, { archive: false });
+export function shareItem(item) {
+  const shareData = {
+    title: item.category,
+    text: item.description,
+    url: window.location.origin + `/detail.html?id=${item.id}`
+  };
+  if (navigator.share) {
+    navigator.share(shareData).catch(err => console.warn("Sdílení selhalo:", err));
+  } else {
+    alert(`Sdílení není podporováno. Zkopírujte odkaz:
+${shareData.url}`);
+  }
 }
 
 export function downloadImage(url) {
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'nabidka.jpg';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'nabidka.jpg';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
-export function shareItem(id) {
-  const url = `https://letaky.netlify.app/detail.html?id=${id}`;
-  const shareData = {
-    title: "Sdílení nabídky",
-    text: "Podívej se na tuto nabídku",
-    url
-  };
-  if (navigator.share) {
-    navigator.share(shareData).catch(e => alert("Nelze sdílet: " + e));
-  } else {
-    prompt("Zkopírujte odkaz:", url);
-  }
-}
+// Gör funktioner tillgängliga globalt
+window.archiveItem = archiveItem;
+window.shareItem = shareItem;
+window.downloadImage = downloadImage;
