@@ -1,4 +1,4 @@
-// admin/modules/helpers.js v1.3
+// admin/modules/helpers.js v1.4
 import { ref, onValue } from './firebase-init.js';
 
 function fetchItems(callback) {
@@ -51,6 +51,7 @@ function renderItemGrid(data, { itemList, showActive, showArchived, categoryFilt
           </div>
         </div>
         <div class="actions">
+          <button onclick="window.location.href='/detail.html?id=${id}'">Náhled</button>
           <button onclick="window.location.href='/admin/admin-detail-edit.html?id=${id}'">Edit</button>
           ${archived
             ? `<button onclick="activateItem('${id}')">Aktivovat</button>`
