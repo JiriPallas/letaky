@@ -1,23 +1,69 @@
-
 <!DOCTYPE html>
 <html lang="cs">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HitTV – Detail</title>
   <style>
-    body { font-family: sans-serif; padding: 2rem; background: #f7f7f7; }
-    h1 { font-size: 2rem; margin-bottom: 1rem; }
-    h1 a { text-decoration: none; color: #000; }
-    .image { margin-bottom: 2rem; }
-    .info-row { display: flex; gap: 2rem; }
-    .left { flex: 0 0 100px; }
-    .right { flex: 1; }
-    .label { font-weight: bold; }
-    .actions { margin-top: 2rem; display: flex; flex-wrap: wrap; gap: 1rem; }
-    button, a.button { padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; text-decoration: none; background: #007bff; color: white; border-radius: 5px; border: none; }
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      background: #f7f7f7;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    h1 a {
+      text-decoration: none;
+      color: #000;
+    }
+
+    .image {
+      margin-bottom: 2rem;
+    }
+
+    .info-row {
+      display: flex;
+      gap: 2rem;
+    }
+
+    .left {
+      flex: 0 0 100px;
+    }
+
+    .right {
+      flex: 1;
+    }
+
+    .label {
+      font-weight: bold;
+    }
+
+    .actions {
+      margin-top: 2rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    button,
+    a.button {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+      text-decoration: none;
+      background: #007bff;
+      color: white;
+      border-radius: 5px;
+      border: none;
+    }
   </style>
 </head>
+
 <body>
   <h1><a href="https://hittv.netlify.app/">HitTV</a></h1>
   <div class="image">
@@ -34,7 +80,13 @@
     </div>
   </div>
   <div class="actions">
-    <button id="buyButton" style="display:none;">Koupit</button>
+    <!-- <button id="buyButton" style="display:none;">Koupit</button> -->
+    <a href="tel:+46767931176" id="buyButton" style="display:none;">
+      <button>
+        Objednat telefonicky<br>
+        <small>+46 76 793 11 76</small>
+      </button>
+    </a>
     <button onclick="shareItem()">Sdílet</button>
     <button onclick="downloadImage()">Uložit</button>
     <a href="https://hittv.netlify.app/" class="button">Hlavní stránka</a>
@@ -115,4 +167,5 @@
     };
   </script>
 </body>
+
 </html>
