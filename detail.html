@@ -1,0 +1,177 @@
+<!-- detail.html v1.1 -->
+<!DOCTYPE html>
+<html lang="cs">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HitTV – Náhled</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 2rem;
+            background: #f7f7f7;
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 1rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .main-image {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            margin-bottom: 1rem;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            text-align: left;
+            margin-bottom: 1rem;
+        }
+
+        .left {
+            flex: 0 0 100px;
+        }
+
+        .right {
+            flex: 1;
+        }
+
+        .right p {
+            margin: 0.5rem 0;
+        }
+
+        .label {
+            font-weight: bold;
+        }
+
+        .actions {
+            margin-top: 1rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        button {
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>HitTV</h1>
+        <img id="mainImage" class="main-image" src="" alt="Obrázek" />
+        <div class="row">
+            <div class="left">
+                <img id="qrCode" src="" alt="QR kód" />
+            </div>
+            <div class="right">
+                <p><span class="label">Kategorie:</span> <span id="category"></span></p>
+                <p><span class="label">Popis:</span> <span id="description"></span></p>
+                <p id="priceWrapper"><span class="label">Cena:</span> <span id="price"></span> Kč</p>
+            </div>
+        </div>
+        <div class="actions" id="actionButtons"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+        import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+
+        const app = initializeApp({
+            apiKey: "AIzaSyCFlTsn1ESQddd_7Neq-W6LBGRiT92c-5w",
+            authDomain: "letaky-aa6ab.firebaseapp.com",
+            databaseURL: "https://letaky-aa6ab-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "letaky-aa6ab",
+            storageBucket: "letaky-aa6ab.firebasestorage.app",
+            messagingSenderId: "814346215288",
+            appId: "1:814346215288:web:445f9700dac9b81cd8f28d"
+        });
+
+        const db = getDatabase(app);
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get("id");
+
+        if (!id) {
+            document.body.innerHTML = "<p>Neplatné ID položky.</p>";
+        } else {
+            const refItem = ref(db, `items/${id}`);
+            get(refItem).then(snapshot => {
+                if (!snapshot.exists()) {
+                    document.body.innerHTML = "<p>Položka nenalezena.</p>";
+                    return;
+                }
+                const item = snapshot.val();
+                const today = new Date().toISOString().split("T")[0];
+                if (item.toDate < today) {
+                    document.body.innerHTML = `<p><strong>Nabídka platná pouze do ${item.toDate}</strong></p>`;
+                    return;
+                }
+
+                document.getElementById("mainImage").src = item.imageUrl;
+                document.getElementById("qrCode").src = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&format=svg&data=https://hittv.netlify.app/detail.html?id=${id}`;
+                document.getElementById("category").textContent = item.category;
+                document.getElementById("description").textContent = item.description;
+
+                if (item.type === "zbozi") {
+                    document.getElementById("price").textContent = item.price;
+                } else {
+                    document.getElementById("priceWrapper").style.display = "none";
+                }
+
+                const buttons = document.getElementById("actionButtons");
+                if (item.type === "zbozi") {
+                    const koupit = document.createElement("button");
+                    koupit.textContent = "Koupit";
+                    koupit.onclick = () => alert(`Koupit: ${id}`);
+                    buttons.appendChild(koupit);
+                }
+
+                const sdilet = document.createElement("button");
+                sdilet.textContent = "Sdílet";
+                sdilet.onclick = () => {
+                    const shareData = {
+                        title: "HitTV",
+                        text: item.description,
+                        url: `https://hittv.netlify.app/detail.html?id=${id}`
+                    };
+                    if (navigator.share) {
+                        navigator.share(shareData).catch(err => alert("Sdílení selhalo"));
+                    } else {
+                        alert("Sdílení není podporováno. Zkopírujte odkaz:\n" + shareData.url);
+                    }
+                };
+                buttons.appendChild(sdilet);
+
+                const ulozit = document.createElement("button");
+                ulozit.textContent = "Uložit";
+                ulozit.onclick = () => {
+                    const a = document.createElement("a");
+                    a.href = item.imageUrl;
+                    a.download = "nabidka.jpg";
+                    a.click();
+                };
+                buttons.appendChild(ulozit);
+            });
+        }
+    </script>
+</body>
+
+</html>
