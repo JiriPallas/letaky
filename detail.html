@@ -1,146 +1,134 @@
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HitTV – Nabídka</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HitTV – Detail</title>
   <style>
     body {
       font-family: sans-serif;
-      padding: 2rem;
+      padding: 1rem;
       background: #f7f7f7;
-      max-width: 800px;
-      margin: auto;
     }
     h1 {
-      margin-bottom: 1rem;
+      font-size: 1.8rem;
     }
-    h1 a {
+    a.title-link {
       color: black;
       text-decoration: none;
     }
-    img.preview {
-      max-width: 100%;
+    .container {
+      background: white;
+      padding: 1rem;
       border-radius: 8px;
-      margin-bottom: 1rem;
+      max-width: 600px;
+      margin: auto;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
     }
-    .columns {
+    .image-wrapper img {
+      width: 100%;
+      border-radius: 6px;
+    }
+    .info-section {
       display: flex;
-      gap: 2rem;
-    }
-    .left, .right {
-      flex: 1;
+      gap: 1rem;
+      margin-top: 1rem;
     }
     .qr img {
       width: 100px;
       height: 100px;
     }
+    .text-info {
+      flex: 1;
+    }
     .label {
       font-weight: bold;
+      display: block;
     }
     .buttons {
-      margin-top: 2rem;
       display: flex;
-      gap: 1rem;
       flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
     }
-    .buttons button {
+    button {
       padding: 0.5rem 1rem;
       font-size: 1rem;
       cursor: pointer;
     }
-    #expired {
-      margin-top: 1rem;
+    .note {
       color: red;
       font-weight: bold;
+      margin-top: 1rem;
     }
   </style>
 </head>
 <body>
-  <h1><a href="https://hittv.netlify.app/">HitTV</a></h1>
-  <img id="image" class="preview" src="" alt="náhled" />
-  <div class="columns">
-    <div class="left qr">
-      <img id="qr" src="" alt="QR kód" />
-    </div>
-    <div class="right">
-      <p><span class="label">Kategorie:</span> <span id="category"></span></p>
-      <p><span class="label">Popis:</span> <span id="description"></span></p>
-      <p id="priceWrap"><span class="label">Cena:</span> <span id="price"></span> Kč</p>
-    </div>
-  </div>
-  <div id="expired"></div>
-  <div class="buttons">
-    <button id="buy" style="display:none;">Koupit</button>
-    <button onclick="share()">Sdílet</button>
-    <button onclick="saveImage()">Uložit</button>
+  <div class="container">
+    <a href="/" class="title-link"><h1>HitTV</h1></a>
+    <div id="content">Načítání…</div>
   </div>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-  import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
 
-  const app = initializeApp({
-    apiKey: "AIzaSyCFlTsn1ESQddd_7Neq-W6LBGRiT92c-5w",
-    authDomain: "letaky-aa6ab.firebaseapp.com",
-    databaseURL: "https://letaky-aa6ab-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "letaky-aa6ab",
-    storageBucket: "letaky-aa6ab.firebasestorage.app",
-    messagingSenderId: "814346215288",
-    appId: "1:814346215288:web:445f9700dac9b81cd8f28d"
-  });
+    const firebaseConfig = {
+      apiKey: "AIzaSyCFlTsn1ESQddd_7Neq-W6LBGRiT92c-5w",
+      authDomain: "letaky-aa6ab.firebaseapp.com",
+      databaseURL: "https://letaky-aa6ab-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "letaky-aa6ab",
+      storageBucket: "letaky-aa6ab.firebasestorage.app",
+      messagingSenderId: "814346215288",
+      appId: "1:814346215288:web:445f9700dac9b81cd8f28d"
+    };
 
-  const db = getDatabase(app);
-  const id = new URLSearchParams(location.search).get("id");
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
-  if (!id) {
-    document.body.innerHTML = "<p>ID položky chybí v URL.</p>";
-  } else {
-    const refItem = ref(db, "items/" + id);
-    get(refItem).then(snapshot => {
-      const item = snapshot.val();
-      if (!item) {
-        document.body.innerHTML = "<p>Položka nenalezena.</p>";
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id");
+
+    async function renderItem(id) {
+      const snapshot = await get(ref(db, "items/" + id));
+      const data = snapshot.val();
+      const div = document.getElementById("content");
+
+      if (!data) {
+        div.innerHTML = "<p>Data nebyla nalezena.</p>";
         return;
       }
 
-      document.getElementById("image").src = item.imageUrl;
-      document.getElementById("qr").src = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://hittv.netlify.app/detail.html?id=${id}`;
-      document.getElementById("category").textContent = item.category;
-      document.getElementById("description").textContent = item.description;
-
-      if (item.type === "zbozi") {
-        document.getElementById("price").textContent = item.price;
-        document.getElementById("buy").style.display = "inline-block";
-      } else {
-        document.getElementById("priceWrap").style.display = "none";
-      }
-
       const today = new Date().toISOString().split("T")[0];
-      if (item.toDate < today) {
-        document.getElementById("expired").textContent = "Nabídka platná pouze do " + item.toDate;
-      }
+      const expired = data.toDate < today;
+      const encodedId = encodeURIComponent(id);
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://hittv.netlify.app/detail.html?id=${encodedId}`;
 
-    });
-  }
-
-  function share() {
-    const url = window.location.href;
-    if (navigator.share) {
-      navigator.share({ title: "HitTV nabídka", url }).catch(console.warn);
-    } else {
-      alert("Sdílení není podporováno. Zkopírujte odkaz:
-" + url);
+      div.innerHTML = `
+        <div class="image-wrapper">
+          <img src="${data.imageUrl}" alt="obrázek">
+        </div>
+        <div class="info-section">
+          <div class="qr">
+            <img src="${qrUrl}" alt="QR">
+          </div>
+          <div class="text-info">
+            <div><span class="label">Kategorie:</span> ${data.category}</div>
+            <div><span class="label">Popis:</span> ${data.description}</div>
+            ${data.type === 'zbozi' ? `<div><span class="label">Cena:</span> ${data.price} Kč</div>` : ""}
+          </div>
+        </div>
+        <div class="buttons">
+          ${data.type === 'zbozi' ? `<button onclick="alert('Koupit zatím není implementováno')">Koupit</button>` : ""}
+          <button onclick="navigator.share ? navigator.share({ title: 'HitTV', text: '${data.description}', url: location.href }) : alert('Sdílení není podporováno')">Sdílet</button>
+          <button onclick="const a=document.createElement('a');a.href='${data.imageUrl}';a.download='nabidka.jpg';a.click();">Uložit</button>
+        </div>
+        ${expired ? `<div class="note">Nabídka platná pouze do ${data.toDate}</div>` : ""}
+      `;
     }
-  }
 
-  function saveImage() {
-    const url = document.getElementById("image").src;
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "nabidka.jpg";
-    link.click();
-  }
-</script>
+    if (id) renderItem(id);
+    else document.getElementById("content").textContent = "Chybné ID.";
+  </script>
 </body>
 </html>
