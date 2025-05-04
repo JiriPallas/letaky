@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="cs">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -15,90 +16,107 @@
       display: flex;
       gap: 2rem;
     }
+
     .controls {
       flex: 0 0 250px;
       background: white;
       padding: 1rem;
       border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     }
+
     .output {
       flex: 1;
     }
+
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
       gap: 1rem;
     }
+
     .item {
       background: white;
       border-radius: 8px;
       padding: 1rem;
-      box-shadow: 0 0 8px rgba(0,0,0,0.05);
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.05);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       min-height: 360px;
       position: relative;
     }
+
     .item img.preview {
       max-width: 100%;
       border-radius: 4px;
       cursor: pointer;
     }
+
     .checkbox-topright {
       position: absolute;
       top: 10px;
       right: 10px;
       transform: scale(1.5);
     }
+
     .info-wrapper {
       margin-top: auto;
     }
+
     .info {
       display: flex;
       gap: 1rem;
       margin-top: 1rem;
       align-items: flex-start;
     }
+
     .qr img {
       width: 70px;
       height: 70px;
     }
+
     .text {
       flex: 1;
       font-size: 0.95rem;
     }
+
     .label {
       font-weight: bold;
       display: block;
     }
+
     .actions {
       display: flex;
       flex-wrap: wrap;
       gap: 0.5rem;
       margin-top: 0.5rem;
     }
+
     .actions button {
       padding: 0.3rem 0.8rem;
       font-size: 0.9rem;
       cursor: pointer;
     }
+
     label {
       display: block;
       margin-bottom: 0.5rem;
       font-weight: bold;
     }
+
     .checkbox-group {
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
     }
+
     #versionInfo {
       font-size: 0.9rem;
       color: #666;
       margin-top: 2rem;
     }
+
     .nav-button {
       margin-top: 1rem;
       display: inline-block;
@@ -110,6 +128,7 @@
     }
   </style>
 </head>
+
 <body>
   <div class="controls">
     <h2>Filtr</h2>
@@ -124,7 +143,9 @@
     <div id="versionInfo">letaky.netlify.app/admin/admin-bilder.html v. 1.12</div>
   </div>
   <div class="output">
-    <div class="grid" id="itemList"><p>Načítání…</p></div>
+    <div class="grid" id="itemList">
+      <p>Načítání…</p>
+    </div>
   </div>
 
   <script type="module">
@@ -137,7 +158,7 @@
     let allItems = {};
 
     function filterItems() {
-      renderItemGrid(allItems, {
+      renderItemGrid('itemList', allItems, {
         showActive: showActive.checked,
         showArchived: showArchived.checked,
         selectedCategories: [...categoryFilters.querySelectorAll('input[type=checkbox]:checked')].map(cb => cb.value)
@@ -164,4 +185,5 @@
     });
   </script>
 </body>
+
 </html>
