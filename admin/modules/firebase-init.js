@@ -1,11 +1,12 @@
-// admin/modules/firebase-init.js v1.3
+// admin/modules/firebase-init.js v1.4
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
 import {
   getDatabase,
   ref,
   update,
   remove,
-  onValue
+  onValue,
+  get     // ⬅️ Här är nyckeln!
 } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
 
 const firebaseConfig = {
@@ -22,4 +23,4 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 window.db = db;
 
-export { db, ref, update, remove, onValue };
+export { db, ref, update, remove, onValue, get }; // ⬅️ Lägg till get här också
