@@ -1,39 +1,66 @@
-<!-- admin/admin-detail-edit.html v1.5 -->
+<!-- admin/admin-detail-edit.html v1.7 -->
 <!DOCTYPE html>
 <html lang="cs">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Editace položky</title>
   <script>
     const FILE_NAME = "letaky.netlify.app/admin/admin-detail-edit.html";
-    const FILE_VERSION = "v1.5";
+    const FILE_VERSION = "v1.7";
   </script>
   <style>
-    body { font-family: sans-serif; padding: 2rem; background: #f7f7f7; max-width: 600px; margin: auto; }
-    h1 { margin-bottom: 0.5rem; }
+    body {
+      font-family: sans-serif;
+      max-width: 600px;
+      margin: 2rem auto;
+      background: #f7f7f7;
+      padding: 1rem;
+    }
     label { display: block; margin-top: 1rem; font-weight: bold; }
-    input, textarea, select { width: 100%; padding: 0.5rem; margin-top: 0.3rem; }
-    .top-buttons { margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
-    #imagePreview img { max-width: 100%; border-radius: 4px; margin-top: 1rem; }
-    .qr { margin-top: 1rem; }
-    .footer { margin-top: 2rem; font-size: 0.9rem; color: #666; text-align: center; }
+    input, select, textarea {
+      width: 100%;
+      padding: 0.5rem;
+      font-size: 1rem;
+      margin-top: 0.25rem;
+    }
+    .qr {
+      margin-top: 1rem;
+      text-align: center;
+    }
+    .buttons {
+      margin-top: 2rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: flex-start;
+    }
+    .buttons button, .buttons a button {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .image-preview {
+      margin-top: 2rem;
+      text-align: center;
+    }
+    .image-preview img {
+      max-width: 100%;
+      border-radius: 8px;
+    }
+    footer {
+      margin-top: 2rem;
+      font-size: 0.9rem;
+      text-align: center;
+      color: #666;
+    }
   </style>
 </head>
 <body>
   <h1>Editace položky</h1>
-  <div class="top-buttons">
-    <button type="button" onclick="saveChanges()">Uložit</button>
-    <button type="button" id="archiveBtn" onclick="toggleArchive()">Archivovat</button>
-    <button type="button" onclick="deleteItem()">Vymazat</button>
-    <a href="/admin/admin-bilder.html"><button type="button">Zpět na Admin</button></a>
-  </div>
-
-  <div id="imagePreview"></div>
-
   <form id="editForm">
-    <label>Kategorie</label>
-    <select id="category">
+    <label for="category">Kategorie</label>
+    <select id="category" required>
       <option>Ostatní</option>
       <option>Potraviny</option>
       <option>Motorová vozidla</option>
@@ -44,105 +71,103 @@
     </select>
 
     <label for="description">Popis</label>
-    <textarea id="description" rows="3"></textarea>
+    <textarea id="description" required></textarea>
 
-    <label for="price">Cena (Kč)</label>
-    <input type="number" id="price" min="0" />
+    <div id="priceWrapper" style="display:none;">
+      <label for="price">Cena (Kč)</label>
+      <input type="number" id="price" min="0" />
+    </div>
 
     <label for="fromDate">Zobrazit od</label>
-    <input type="date" id="fromDate" />
+    <input type="date" id="fromDate" required>
 
     <label for="toDate">Zobrazit do</label>
-    <input type="date" id="toDate" />
+    <input type="date" id="toDate" required>
+
+    <div class="qr">
+      <img id="qrCode" src="" alt="QR kód" width="120" height="120">
+    </div>
+
+    <div class="buttons" id="actionButtons">
+      <button type="submit">Uložit</button>
+      <button type="button" id="archiveBtn">Archivovat</button>
+      <button type="button" id="deleteBtn">Vymazat</button>
+      <a href="/admin/admin-bilder.html"><button type="button">Zpět na Admin</button></a>
+    </div>
   </form>
 
-  <div class="qr">
-    <img id="qrCode" src="" alt="QR kód" />
-  </div>
+  <div class="image-preview" id="imagePreview"></div>
 
-  <div class="footer" id="footerInfo"></div>
+  <footer id="footerText"></footer>
 
   <script type="module">
     import { db, ref, update, remove, get } from './modules/firebase-init.js';
 
-    const FILE_VERSION = "v1.5";
-    const FILE_NAME = "letaky.netlify.app/admin/admin-detail-edit.html";
-    document.getElementById("footerInfo").textContent = `${FILE_NAME} ${FILE_VERSION}`;
-
     const params = new URLSearchParams(window.location.search);
     const id = params.get("id");
-    const itemRef = ref(db, `items/${id}`);
 
-    let itemData;
+    const category = document.getElementById("category");
+    const description = document.getElementById("description");
+    const price = document.getElementById("price");
+    const fromDate = document.getElementById("fromDate");
+    const toDate = document.getElementById("toDate");
+    const priceWrapper = document.getElementById("priceWrapper");
+    const imagePreview = document.getElementById("imagePreview");
+    const qrCode = document.getElementById("qrCode");
+    const archiveBtn = document.getElementById("archiveBtn");
+    const deleteBtn = document.getElementById("deleteBtn");
+    const form = document.getElementById("editForm");
+
+    const footer = document.getElementById("footerText");
+    footer.textContent = `${FILE_NAME} ${FILE_VERSION}`;
+
+    const itemRef = ref(db, `items/${id}`);
+    let currentItem = null;
 
     get(itemRef).then(snapshot => {
-      if (!snapshot.exists()) {
-        alert("Položka nenalezena.");
-        return;
+      const item = snapshot.val();
+      if (!item) return alert("Položka nebyla nalezena.");
+
+      currentItem = item;
+      category.value = item.category;
+      description.value = item.description;
+      fromDate.value = item.fromDate;
+      toDate.value = item.toDate;
+      qrCode.src = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=https://hittv.netlify.app/detail.html?id=${id}`;
+
+      if (item.type === "zbozi") {
+        priceWrapper.style.display = "block";
+        price.value = item.price || 0;
       }
 
-      itemData = snapshot.val();
-      document.getElementById("category").value = itemData.category || "";
-      document.getElementById("description").value = itemData.description || "";
-      document.getElementById("price").value = itemData.type === 'zbozi' ? itemData.price : "";
-      document.getElementById("price").style.display = itemData.type === 'zbozi' ? 'block' : 'none';
-      document.getElementById("fromDate").value = itemData.fromDate || "";
-      document.getElementById("toDate").value = itemData.toDate || "";
-
-      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=https://hittv.netlify.app/detail.html?id=${id}`;
-      document.getElementById("qrCode").src = qrUrl;
-
-      document.getElementById("archiveBtn").textContent = itemData.archive ? "Aktivovat" : "Archivovat";
-
-      if (itemData.imageUrl) {
-        document.getElementById("imagePreview").innerHTML = `
-          <img src="${itemData.imageUrl}" alt="náhled" />
-        `;
+      if (item.archive === true || item.toDate < new Date().toISOString().split("T")[0]) {
+        archiveBtn.textContent = "Aktivovat";
+        archiveBtn.onclick = () => update(itemRef, { archive: false }).then(() => location.reload());
+      } else {
+        archiveBtn.textContent = "Archivovat";
+        archiveBtn.onclick = () => update(itemRef, { archive: true }).then(() => location.reload());
       }
-    });
 
-    window.saveChanges = async function () {
-      const updated = {
-        category: document.getElementById("category").value,
-        description: document.getElementById("description").value,
-        fromDate: document.getElementById("fromDate").value,
-        toDate: document.getElementById("toDate").value,
-        price: itemData.type === 'zbozi' ? parseFloat(document.getElementById("price").value) || 0 : 0
+      deleteBtn.onclick = () => {
+        if (confirm("Opravdu chcete smazat tuto položku?")) {
+          remove(itemRef).then(() => window.location.href = "/admin/admin-bilder.html");
+        }
       };
 
-      try {
-        await update(itemRef, updated);
-        alert("Uloženo!");
-      } catch (err) {
-        console.error(err);
-        alert("Chyba při ukládání.");
-      }
-    };
+      imagePreview.innerHTML = `<img src="${item.imageUrl}" alt="náhled">`;
+    });
 
-    window.toggleArchive = async function () {
-      try {
-        const newStatus = !itemData.archive;
-        await update(itemRef, { archive: newStatus });
-        alert(newStatus ? "Archivováno" : "Aktivováno");
-        location.reload();
-      } catch (err) {
-        console.error(err);
-        alert("Chyba při změně stavu.");
-      }
-    };
-
-    window.deleteItem = async function () {
-      if (confirm("Opravdu chcete smazat tuto položku?")) {
-        try {
-          await remove(itemRef);
-          alert("Smazáno.");
-          window.location.href = "/admin/admin-bilder.html";
-        } catch (err) {
-          console.error(err);
-          alert("Chyba při mazání.");
-        }
-      }
-    };
+    form.addEventListener("submit", e => {
+      e.preventDefault();
+      const updated = {
+        category: category.value,
+        description: description.value,
+        fromDate: fromDate.value,
+        toDate: toDate.value,
+        price: currentItem.type === "zbozi" ? parseFloat(price.value) || 0 : 0
+      };
+      update(itemRef, updated).then(() => alert("Změny byly uloženy."));
+    });
   </script>
 </body>
 </html>
