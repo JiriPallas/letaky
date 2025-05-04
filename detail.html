@@ -1,4 +1,4 @@
-<!-- detail.html v1.2 -->
+<!-- detail.html v1.3 -->
 <!DOCTYPE html>
 <html lang="cs">
 <head>
@@ -21,51 +21,67 @@
     }
     h1 {
       margin-bottom: 1rem;
+      font-size: 1.5rem;
+    }
+    h1 a {
+      text-decoration: none;
+      color: black;
     }
     .main-image {
       width: 100%;
       max-height: 400px;
       object-fit: contain;
       margin-bottom: 1rem;
+      border-radius: 8px;
     }
     .row {
       display: flex;
       gap: 1rem;
-      margin-bottom: 1rem;
       align-items: flex-start;
+      margin-bottom: 1rem;
     }
     .left {
       flex: 0 0 100px;
     }
+    .left img {
+      width: 100px;
+      height: 100px;
+    }
     .right {
       flex: 1;
-    }
-    .right p {
-      margin: 0.5rem 0;
     }
     .label {
       font-weight: bold;
     }
+    .right p {
+      margin: 0.5rem 0;
+    }
     .actions {
       display: flex;
-      gap: 1rem;
       flex-wrap: wrap;
+      gap: 1rem;
       margin-top: 1rem;
     }
-    button {
+    .actions button, .actions a {
       padding: 0.5rem 1rem;
       font-size: 1rem;
+      text-decoration: none;
+      border: none;
+      background: #007bff;
+      color: white;
+      border-radius: 4px;
       cursor: pointer;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>HitTV</h1>
+    <h1><a href="https://hittv.netlify.app/">HitTV</a></h1>
     <img id="mainImage" class="main-image" src="" alt="Obrázek" />
+
     <div class="row">
       <div class="left">
-        <img id="qrCode" src="" alt="QR kód" width="100" height="100" />
+        <img id="qrCode" src="" alt="QR kód" />
       </div>
       <div class="right">
         <p><span class="label">Kategorie:</span> <span id="category"></span></p>
@@ -73,6 +89,7 @@
         <p id="priceWrapper"><span class="label">Cena:</span> <span id="price"></span> Kč</p>
       </div>
     </div>
+
     <div class="actions" id="actionButtons"></div>
   </div>
 
@@ -156,6 +173,11 @@
           a.click();
         };
         actions.appendChild(ulozit);
+
+        const hlavni = document.createElement("a");
+        hlavni.textContent = "Hlavní stránka";
+        hlavni.href = "https://hittv.netlify.app/";
+        actions.appendChild(hlavni);
       });
     }
   </script>
