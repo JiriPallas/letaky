@@ -1,8 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="cs">
+
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>HitTV – Video</title>
   <style>
     body {
@@ -10,63 +11,69 @@
       background: black;
       color: white;
       font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
     }
-    header img {
-      margin: 20px;
+
+    .logo {
+      text-align: center;
+      padding: 1rem;
+    }
+
+    .logo img {
       height: 60px;
     }
-    #videoContainer {
+
+    .container {
       display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      width: 100%;
-      max-width: 1200px;
+      height: calc(100vh - 80px);
     }
-    #mainDisplay {
-      flex: 3;
-      padding: 1rem;
-      text-align: center;
-    }
-    #mainDisplay img {
-      max-width: 100%;
-      max-height: 400px;
-      border: 2px solid white;
-    }
-    #qrSidebar {
+
+    .main {
       flex: 1;
       display: flex;
       flex-direction: column;
+      justify-content: center;
       align-items: center;
-      gap: 1rem;
-      margin-top: 2rem;
     }
-    .qrSmall img {
-      width: 100px;
-      height: 100px;
+
+    .main img {
+      max-height: 60vh;
+      object-fit: contain;
+      margin-bottom: 1rem;
     }
-    .info {
-      margin-top: 1rem;
-      font-size: 1.2rem;
-      text-align: left;
-      max-width: 600px;
-      margin-left: auto;
-      margin-right: auto;
+
+    .text {
+      font-size: 1.3rem;
+      text-align: center;
+    }
+
+    .sidebar {
+      width: 220px;
+      background: #111;
+      padding: 1rem;
+      overflow-y: auto;
+    }
+
+    .sidebar-item {
+      margin-bottom: 1rem;
+    }
+
+    .sidebar-item img {
+      width: 100%;
+      display: block;
+      border: 2px solid #444;
     }
   </style>
 </head>
+
 <body>
-  <header>
-    <img src="/admin/logo.png" alt="HitTV" />
-  </header>
-  <div id="videoContainer">
-    <div id="mainDisplay">
-      <img id="mainImage" src="" alt="Hlavní obrázek" />
-      <div class="info" id="infoText"></div>
+  <div class="logo">
+    <img src="logo.png" alt="HitTV logo" />
+  </div>
+  <div class="container">
+    <div class="main" id="mainImage">
+      <p>Načítání…</p>
     </div>
-    <div id="qrSidebar"></div>
+    <div class="sidebar" id="sidebar"></div>
   </div>
 
   <script type="module">
@@ -85,33 +92,47 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
+    const selectedIds = Array.from(new URLSearchParams(window.location.search).entries())
+      .filter(([key]) => key === "id")
+      .map(([, value]) => value);
 
-    const params = new URLSearchParams(window.location.search);
-    const ids = params.get("ids")?.split(",") || [];
-
-    const mainImage = document.getElementById("mainImage");
-    const infoText = document.getElementById("infoText");
-    const qrSidebar = document.getElementById("qrSidebar");
-
-    let currentIndex = 0;
     let items = [];
+    let currentIndex = 0;
 
-    async function fetchItem(id) {
-      const snapshot = await get(ref(db, 'items/' + id));
-      const item = snapshot.val();
-      return { ...item, id };
+    function showItem(index) {
+      const item = items[index];
+      const main = document.getElementById("mainImage");
+
+      main.innerHTML = `
+        <img src="${item.imageUrl}" alt="hlavni obrázek">
+        <div class="text">
+          <p><strong>${item.category}</strong></p>
+          <p>${item.description}</p>
+          ${item.type === "zbozi" ? `<p>${item.price} Kč</p>` : ""}
+        </div>
+      `;
     }
 
     async function loadItems() {
-      items = await Promise.all(ids.map(fetchItem));
-      items.forEach(item => {
-        const qr = document.createElement("div");
-        qr.className = "qrSmall";
-        qr.innerHTML = `
-          <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&format=svg&data=https://hittv.netlify.app/detail.html?id=${item.id}" alt="QR" />
-        `;
-        qrSidebar.appendChild(qr);
-      });
+      const dbRef = ref(db, "items");
+      const snapshot = await get(dbRef);
+      const data = snapshot.val();
+
+      items = selectedIds
+        .map(id => ({ id, ...data[id] }))
+        .filter(item => item.imageUrl); // Endast poster som har bild
+
+      if (items.length === 0) {
+        document.getElementById("mainImage").innerText = "Žádné platné položky.";
+        return;
+      }
+
+      const sidebar = document.getElementById("sidebar");
+      sidebar.innerHTML = items.map(item => {
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://hittv.netlify.app/detail.html?id=${item.id}`;
+        return `<div class="sidebar-item"><img src="${qrUrl}" alt="QR"></div>`;
+      }).join("");
+
       showItem(0);
       setInterval(() => {
         currentIndex = (currentIndex + 1) % items.length;
@@ -119,17 +140,8 @@
       }, 5000);
     }
 
-    function showItem(index) {
-      const item = items[index];
-      mainImage.src = item.imageUrl;
-      infoText.innerHTML = `
-        <div><strong>Kategorie:</strong> ${item.category}</div>
-        <div><strong>Popis:</strong> ${item.description}</div>
-        ${item.type === "zbozi" ? `<div><strong>Cena:</strong> ${item.price} Kč</div>` : ""}
-      `;
-    }
-
     loadItems();
   </script>
 </body>
+
 </html>
