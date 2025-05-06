@@ -1,11 +1,11 @@
-<!-- admin/admin-bilder.html v1.13 -->
+<!-- admin/admin-bilder.html v1.14 -->
 <!DOCTYPE html>
 <html lang="cs">
 
 <head>
   <script>
     const FILE_NAME = "admin/admin-bilder.html";
-    const FILE_VERSION = "v. 1.13";
+    const FILE_VERSION = "v. 1.14";
   </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -54,7 +54,7 @@
       display: flex;
       gap: 1rem;
       margin-top: 1rem;
-      align-items: flex-start;
+      align-items: flex-end;
     }
 
     .qr img {
@@ -127,13 +127,13 @@
   <script type="module">
     import { renderItemGrid, fetchItems } from './modules/helpers.js';
     import { archiveItem, activateItem, deleteItem } from './modules/actions.js';
+
     window.archiveItem = archiveItem;
     window.activateItem = activateItem;
     window.deleteItem = deleteItem;
 
     document.getElementById("versionInfo").textContent = `${FILE_NAME} ${FILE_VERSION}`;
 
-    // Globala data
     let allItems = {};
 
     function filterItems() {
