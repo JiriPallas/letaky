@@ -127,6 +127,9 @@
   <script type="module">
     import { renderItemGrid, fetchItems } from './modules/helpers.js';
     import { archiveItem, activateItem, deleteItem } from './modules/actions.js';
+    window.archiveItem = archiveItem;
+    window.activateItem = activateItem;
+    window.deleteItem = deleteItem;
 
     document.getElementById("versionInfo").textContent = `${FILE_NAME} ${FILE_VERSION}`;
 
