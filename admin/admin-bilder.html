@@ -5,7 +5,7 @@
 <head>
   <script>
     const FILE_NAME = "admin/admin-bilder.html";
-    const FILE_VERSION = "v. 1.15";
+    const FILE_VERSION = "v. 1.14";
   </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -15,25 +15,61 @@
   <style>
     body {
       font-family: sans-serif;
-      margin: 0;
-      padding: 0;
+      padding: 2rem;
       background: #f7f7f7;
       display: flex;
-      min-height: 100vh;
+      gap: 2rem;
     }
 
     .controls {
-      width: 250px;
+      flex: 0 0 260px;
       background: white;
       padding: 1rem;
-      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
-      box-sizing: border-box;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    fieldset {
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 0.5rem 1rem 1rem 1rem;
+    }
+
+    fieldset legend {
+      font-weight: bold;
+      padding: 0 0.5rem;
+    }
+
+    .checkbox-group,
+    .radio-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      margin-top: 0.3rem;
+    }
+
+    .nav-button {
+      margin-top: 0.5rem;
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      background: #007bff;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      text-align: center;
+    }
+
+    #versionInfo {
+      font-size: 0.9rem;
+      color: #666;
+      margin-top: auto;
     }
 
     .output {
       flex: 1;
-      padding: 2rem;
-      box-sizing: border-box;
     }
 
     .grid {
@@ -46,18 +82,18 @@
       background: white;
       border-radius: 8px;
       padding: 1rem;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.05);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       min-height: 360px;
-      box-shadow: 0 0 8px rgba(0, 0, 0, 0.05);
     }
 
     .info {
       display: flex;
       gap: 1rem;
-      margin-top: auto;
-      align-items: flex-end;
+      margin-top: 1rem;
+      align-items: flex-start;
     }
 
     .qr img {
@@ -82,43 +118,11 @@
       font-size: 0.9rem;
       cursor: pointer;
     }
-
-    .checkbox-group,
-    .radio-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      margin-bottom: 1rem;
-    }
-
-    fieldset {
-      border: 1px solid #ccc;
-      padding: 0.5rem 1rem;
-      margin-bottom: 1rem;
-    }
-
-    #versionInfo {
-      font-size: 0.9rem;
-      color: #666;
-      margin-top: 2rem;
-    }
-
-    .nav-button {
-      margin-top: 1rem;
-      display: inline-block;
-      padding: 0.5rem 1rem;
-      background: #007bff;
-      color: white;
-      text-decoration: none;
-      border-radius: 4px;
-    }
   </style>
 </head>
 
 <body>
   <div class="controls">
-    <h2>Filtr</h2>
-
     <fieldset>
       <legend>Typ položky</legend>
       <div class="radio-group">
@@ -154,7 +158,6 @@
   <script type="module">
     import { renderItemGrid, fetchItems } from './modules/helpers.js';
     import { archiveItem, activateItem, deleteItem } from './modules/actions.js';
-
     window.archiveItem = archiveItem;
     window.activateItem = activateItem;
     window.deleteItem = deleteItem;
@@ -163,38 +166,27 @@
 
     let allItems = {};
 
-    function getFilterValues() {
-      const selectedType = document.querySelector("input[name='typeFilter']:checked").value;
-      const selectedStatus = document.querySelector("input[name='statusFilter']:checked").value;
-      const selectedCats = Array.from(document.querySelectorAll("#categoryFilters input:checked")).map(cb => cb.value);
-
-      return {
-        selectedType,
-        showActive: selectedStatus === "active",
-        showArchived: selectedStatus === "archived",
-        selectedCats
-      };
-    }
-
     function filterItems() {
-      const filters = getFilterValues();
-      renderItemGrid(allItems, filters);
+      const selectedType = document.querySelector("input[name=typeFilter]:checked")?.value;
+      const selectedStatus = document.querySelector("input[name=statusFilter]:checked")?.value;
+      const selectedCats = Array.from(document.querySelectorAll("#categoryFilters input:checked")).map(cb => cb.value);
+      renderItemGrid(allItems, { selectedType, selectedStatus, selectedCats });
     }
 
     function populateCategoryFilters(items) {
-      const catSet = new Set(Object.values(items).map(i => i.category));
-      const container = document.getElementById("categoryFilters");
-      container.innerHTML = "";
-      catSet.forEach(cat => {
+      const categories = new Set(Object.values(items).map(i => i.category));
+      const wrapper = document.getElementById("categoryFilters");
+      wrapper.innerHTML = "";
+      categories.forEach(cat => {
         const label = document.createElement("label");
-        label.innerHTML = `<input type="checkbox" value="${cat}"> ${cat}`;
-        container.appendChild(label);
+        label.innerHTML = `<input type="checkbox" value="${cat}" checked> ${cat}`;
+        wrapper.appendChild(label);
       });
-      container.querySelectorAll("input").forEach(cb => cb.addEventListener("change", filterItems));
+      wrapper.querySelectorAll("input").forEach(cb => cb.addEventListener("change", filterItems));
     }
 
-    document.querySelectorAll("input[name='typeFilter']").forEach(r => r.addEventListener("change", filterItems));
-    document.querySelectorAll("input[name='statusFilter']").forEach(r => r.addEventListener("change", filterItems));
+    document.querySelectorAll("input[name=typeFilter]").forEach(r => r.addEventListener("change", filterItems));
+    document.querySelectorAll("input[name=statusFilter]").forEach(r => r.addEventListener("change", filterItems));
 
     document.getElementById("createVideo").addEventListener("click", () => {
       const checkboxes = document.querySelectorAll(".video-checkbox:checked");
@@ -202,8 +194,9 @@
         alert("Vyberte alespoň 2 položky pro video.");
         return;
       }
-      const ids = Array.from(checkboxes).map(cb => `id=${cb.value}`).join("&");
-      window.open(`/video.html?${ids}`, "_blank");
+      const ids = Array.from(checkboxes).map(cb => cb.value);
+      const query = ids.map(id => `id=${id}`).join("&");
+      window.open(`/video.html?${query}`, "_blank");
     });
 
     fetchItems((items) => {
