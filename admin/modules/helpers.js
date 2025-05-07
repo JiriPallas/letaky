@@ -1,73 +1,71 @@
-// admin/modules/helpers.js v1.6
-
+// admin/modules/helpers.js v1.10
 import { db, ref, onValue } from './firebase-init.js';
 
 export function fetchItems(callback) {
-  const itemsRef = ref(db, 'items');
-  onValue(itemsRef, (snapshot) => {
-    const data = snapshot.val();
-    callback(data || {});
+  const dbRef = ref(db, 'items');
+  onValue(dbRef, (snapshot) => {
+    callback(snapshot.val() || {});
   });
 }
 
-export function renderItemGrid(data, { showActive, showArchived, selectedCats, selectedType }) {
-  const container = document.getElementById("itemList");
-  container.innerHTML = "";
+export function renderItemGrid(items, options = {}) {
+  const container = document.getElementById('itemList');
+  if (!container) return;
+  container.innerHTML = '';
 
-  const today = new Date().toISOString().split("T")[0];
-  const entries = Object.entries(data || {});
-  let count = 0;
+  const {
+    showActive = true,
+    showArchived = false,
+    selectedCats = [],
+    selectedType = ''
+  } = options;
 
-  entries.forEach(([id, item]) => {
+  for (const [id, item] of Object.entries(items)) {
     const isArchived = item.archive === true;
-    const isActive = !isArchived && item.toDate >= today;
+    const isActive = !isArchived;
 
-    if (
-      (isActive && !showActive) ||
-      (isArchived && !showArchived) ||
-      (selectedCats.length && !selectedCats.includes(item.category)) ||
-      (selectedType && item.type !== selectedType)
-    ) {
-      return;
-    }
+    if ((isArchived && !showArchived) || (isActive && !showActive)) continue;
+    if (selectedType && item.type !== selectedType) continue;
+    if (selectedCats.length > 0 && !selectedCats.includes(item.category)) continue;
 
-    const qr = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&format=svg&data=https://hittv.netlify.app/detail.html?id=${id}`;
+    const card = document.createElement('div');
+    card.className = 'item';
 
-    const div = document.createElement("div");
-    div.className = "item";
+    const isVideo = item.imageUrl.endsWith('.mp4') || item.imageUrl.endsWith('.webm');
 
-    div.innerHTML = `
-      ${item.imageUrl.endsWith(".mp4") || item.imageUrl.endsWith(".webm") ? `
-        <video src="${item.imageUrl}" autoplay muted loop playsinline style="width:100%;border-radius:4px;cursor:pointer;" onclick="window.open('/admin-detail-edit.html?id=${id}', '_blank')"></video>
-      ` : `
-        <img src="${item.imageUrl}" alt="obrázek" class="preview" onclick="window.open('/admin-detail-edit.html?id=${id}', '_blank')" />
-      `}
-      <div class="info-wrapper">
-        <div class="info">
-          <div class="qr"><img src="${qr}" alt="QR" /></div>
-          <div class="text">
-            <div><b>Kategorie:</b> ${item.category}</div>
-            <div><b>Popis:</b> ${item.description}</div>
-            ${item.type === 'zbozi' ? `<div><b>Cena:</b> ${item.price} Kč</div>` : ''}
-          </div>
+    const media = isVideo
+      ? `<video src="${item.imageUrl}" autoplay loop muted playsinline style="max-width:100%; border-radius:4px;"></video>`
+      : `<img src="${item.imageUrl}" alt="náhled" style="max-width:100%; border-radius:4px;" />`;
+
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&format=svg&data=https://hittv.netlify.app/detail.html?id=${id}`;
+
+    const cenaRow = item.type === 'zbozi' ? `<div><strong>Cena:</strong> ${item.price} Kč</div>` : '';
+
+    card.innerHTML = `
+      <div>${media}</div>
+      <div class="info">
+        <div class="qr"><img src="${qrUrl}" alt="QR" /></div>
+        <div class="text">
+          <div><strong>Kategorie:</strong> ${item.category}</div>
+          <div><strong>Popis:</strong> ${item.description}</div>
+          ${cenaRow}
         </div>
       </div>
       <div class="actions">
-        <button onclick="window.open('/detail.html?id=${id}', '_blank')">Náhled</button>
-        <button onclick="window.open('/admin-detail-edit.html?id=${id}', '_blank')">Edit</button>
-        ${isArchived
-          ? `<button onclick="activateItem('${id}')">Aktivovat</button>`
-          : `<button onclick="archiveItem('${id}')">Archivovat</button>`}
+        ${!item.archive
+          ? `<button onclick="archiveItem('${id}')">Archivovat</button>`
+          : `<button onclick="activateItem('${id}')">Aktivovat</button>`}
         <button onclick="deleteItem('${id}')">Vymazat</button>
-        <input type="checkbox" class="video-checkbox" value="${id}" title="Přidat do videa" />
+        <a href="/admin/admin-detail-edit.html?id=${id}"><button>Edit</button></a>
+        <a href="/detail.html?id=${id}" target="_blank"><button>Náhled</button></a>
+        <label><input type="checkbox" class="video-checkbox" value="${id}" /> video</label>
       </div>
     `;
 
-    container.appendChild(div);
-    count++;
-  });
+    container.appendChild(card);
+  }
 
-  if (count === 0) {
-    container.innerHTML = "<p>Žádné položky k zobrazení.</p>";
+  if (container.innerHTML === '') {
+    container.innerHTML = '<p>Žádné položky k zobrazení.</p>';
   }
 }
