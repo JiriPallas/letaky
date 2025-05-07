@@ -1,4 +1,4 @@
-<!-- index.html v1.6 -->
+<!-- index.html v1.7 -->
 <!DOCTYPE html>
 <html lang="cs">
 
@@ -9,12 +9,29 @@
   <style>
     body {
       font-family: sans-serif;
-      padding: 2rem;
+      margin: 0;
       background: #f7f7f7;
+      display: flex;
+    }
+
+    .sidebar {
+      width: 250px;
+      background: white;
+      padding: 1rem;
+      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+      height: 100vh;
+      box-sizing: border-box;
+      overflow-y: auto;
+    }
+
+    .content {
+      flex: 1;
+      padding: 2rem;
+      box-sizing: border-box;
     }
 
     h1 {
-      margin-bottom: 1rem;
+      margin-top: 0;
     }
 
     fieldset {
@@ -27,6 +44,12 @@
     legend {
       font-weight: bold;
       padding: 0 0.5rem;
+    }
+
+    #categoryFilters label,
+    fieldset label {
+      display: block;
+      margin-bottom: 0.5rem;
     }
 
     .grid {
@@ -77,27 +100,31 @@
 </head>
 
 <body>
-  <h1>HitTV – Nabídky</h1>
+  <div class="sidebar">
+    <h1>HitTV</h1>
 
-  <fieldset>
-    <legend>Typ položky</legend>
-    <label><input type="radio" name="typeFilter" value="zbozi" checked> Zboží</label>
-    <label><input type="radio" name="typeFilter" value="letak"> Leták</label>
-  </fieldset>
+    <fieldset>
+      <legend>Typ položky</legend>
+      <label><input type="radio" name="typeFilter" value="zbozi" checked> Zboží</label>
+      <label><input type="radio" name="typeFilter" value="letak"> Leták</label>
+    </fieldset>
 
-  <fieldset>
-    <legend>Stav</legend>
-    <label><input type="radio" name="statusFilter" value="active" checked> Aktivní</label>
-    <label><input type="radio" name="statusFilter" value="archived"> Archivované</label>
-  </fieldset>
+    <fieldset>
+      <legend>Stav</legend>
+      <label><input type="radio" name="statusFilter" value="active" checked> Aktivní</label>
+      <label><input type="radio" name="statusFilter" value="archived"> Archivované</label>
+    </fieldset>
 
-  <fieldset>
-    <legend>Kategorie</legend>
-    <div id="categoryFilters"></div>
-  </fieldset>
+    <fieldset>
+      <legend>Kategorie</legend>
+      <div id="categoryFilters"></div>
+    </fieldset>
+  </div>
 
-  <div class="grid" id="itemGrid">
-    <p>Načítání…</p>
+  <div class="content">
+    <div class="grid" id="itemGrid">
+      <p>Načítání…</p>
+    </div>
   </div>
 
   <script type="module">
@@ -120,11 +147,6 @@
     const categoryFilters = document.getElementById("categoryFilters");
 
     let allItems = {};
-
-    function isActive(item) {
-      const today = new Date().toISOString().split("T")[0];
-      return item.archive !== true && item.toDate >= today;
-    }
 
     function getSelectedCategories() {
       const checked = categoryFilters.querySelectorAll("input[type=checkbox]:checked");
@@ -163,10 +185,10 @@
       const selectedCats = getSelectedCategories();
       const selectedType = getSelectedType();
       const selectedStatus = getSelectedStatus();
+      const today = new Date().toISOString().split("T")[0];
       let count = 0;
 
       entries.forEach(([id, item]) => {
-        const today = new Date().toISOString().split("T")[0];
         const isArchived = item.archive === true || item.toDate < today;
         if (selectedStatus === "active" && isArchived) return;
         if (selectedStatus === "archived" && !isArchived) return;
