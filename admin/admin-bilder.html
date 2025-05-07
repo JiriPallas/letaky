@@ -3,116 +3,39 @@
 <html lang="cs">
 
 <head>
-  <script>
-    const FILE_NAME = "admin/admin-bilder.html";
-    const FILE_VERSION = "v. 1.14";
-  </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin – Aktivní položky</title>
+  <script>
+    const FILE_NAME = "admin/admin-bilder.html";
+    const FILE_VERSION = "v1.14";
+  </script>
   <script type="module" src="./modules/helpers.js"></script>
   <script type="module" src="./modules/actions.js"></script>
-  <style>
-    body {
-      font-family: sans-serif;
-      padding: 2rem;
-      background: #f7f7f7;
-      display: flex;
-      gap: 2rem;
-    }
-
-    .controls {
-      flex: 0 0 250px;
-      background: white;
-      padding: 1rem;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    }
-
-    .output {
-      flex: 1;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 1rem;
-    }
-
-    .item {
-      background: white;
-      border-radius: 8px;
-      padding: 1rem;
-      box-shadow: 0 0 8px rgba(0, 0, 0, 0.05);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      min-height: 360px;
-    }
-
-    .info {
-      display: flex;
-      gap: 1rem;
-      margin-top: 1rem;
-      align-items: flex-end;
-    }
-
-    .qr img {
-      width: 70px;
-      height: 70px;
-    }
-
-    .text {
-      flex: 1;
-      font-size: 0.95rem;
-    }
-
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-top: 0.5rem;
-    }
-
-    .actions button {
-      padding: 0.3rem 0.8rem;
-      font-size: 0.9rem;
-      cursor: pointer;
-    }
-
-    .checkbox-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    #versionInfo {
-      font-size: 0.9rem;
-      color: #666;
-      margin-top: 2rem;
-    }
-
-    .nav-button {
-      margin-top: 1rem;
-      display: inline-block;
-      padding: 0.5rem 1rem;
-      background: #007bff;
-      color: white;
-      text-decoration: none;
-      border-radius: 4px;
-    }
-  </style>
+  <link rel="stylesheet" href="./style.css" />
 </head>
 
 <body>
   <div class="controls">
     <h2>Filtr</h2>
-    <div class="checkbox-group">
-      <label><input type="checkbox" id="showActive" checked> Aktivní</label>
-      <label><input type="checkbox" id="showArchived"> Archivované</label>
-    </div>
-    <label>Kategorie</label>
-    <div class="checkbox-group" id="categoryFilters"></div>
+
+    <fieldset>
+      <legend>Typ položky</legend>
+      <label><input type="radio" name="typeFilter" value="zbozi" checked> Zboží</label>
+      <label><input type="radio" name="typeFilter" value="letak"> Leták</label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Stav</legend>
+      <label><input type="radio" name="archiveFilter" value="active" checked> Aktivní</label>
+      <label><input type="radio" name="archiveFilter" value="archived"> Archivované</label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Kategorie</legend>
+      <div class="checkbox-group" id="categoryFilters"></div>
+    </fieldset>
+
     <a href="/admin/" class="nav-button">Nový záznam</a>
     <button class="nav-button" id="createVideo">Vytvoř video</button>
     <div id="versionInfo"></div>
@@ -128,19 +51,19 @@
     import { renderItemGrid, fetchItems } from './modules/helpers.js';
     import { archiveItem, activateItem, deleteItem } from './modules/actions.js';
 
+    document.getElementById("versionInfo").textContent = `${FILE_NAME} ${FILE_VERSION}`;
     window.archiveItem = archiveItem;
     window.activateItem = activateItem;
     window.deleteItem = deleteItem;
 
-    document.getElementById("versionInfo").textContent = `${FILE_NAME} ${FILE_VERSION}`;
-
     let allItems = {};
+    let selectedType = "zbozi";
 
     function filterItems() {
-      const showActive = document.getElementById("showActive").checked;
-      const showArchived = document.getElementById("showArchived").checked;
+      const showActive = document.querySelector('input[name="archiveFilter"]:checked').value === "active";
+      const showArchived = !showActive;
       const selectedCats = Array.from(document.querySelectorAll("#categoryFilters input:checked")).map(i => i.value);
-      renderItemGrid(allItems, { showActive, showArchived, selectedCats });
+      renderItemGrid(allItems, { showActive, showArchived, selectedCats, selectedType });
     }
 
     function populateCategoryFilters(items) {
@@ -155,8 +78,15 @@
       categoryFilters.querySelectorAll("input").forEach(cb => cb.addEventListener("change", filterItems));
     }
 
-    document.getElementById("showActive").addEventListener("change", filterItems);
-    document.getElementById("showArchived").addEventListener("change", filterItems);
+    document.querySelectorAll('input[name="archiveFilter"]').forEach(el =>
+      el.addEventListener("change", filterItems)
+    );
+    document.querySelectorAll('input[name="typeFilter"]').forEach(el =>
+      el.addEventListener("change", (e) => {
+        selectedType = e.target.value;
+        filterItems();
+      })
+    );
 
     document.getElementById("createVideo").addEventListener("click", () => {
       const checkboxes = document.querySelectorAll('.video-checkbox:checked');

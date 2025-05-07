@@ -1,59 +1,104 @@
-// admin/modules/helpers.js v1.5
-import { ref, onValue } from './firebase-init.js';
+// modules/helpers.js v1.7
+import { db, ref, onValue } from "./firebase-init.js";
 
 export function fetchItems(callback) {
-  const dbRef = ref(window.db, 'items');
-  onValue(dbRef, snapshot => {
+  const itemsRef = ref(db, "items");
+  onValue(itemsRef, (snapshot) => {
     const data = snapshot.val() || {};
     callback(data);
   });
 }
 
-export function renderItemGrid(data, { showActive, showArchived, selectedCats }) {
+export function renderItemGrid(data, options = {}) {
+  const { showActive = true, showArchived = false, selectedCats = [], selectedType = "zbozi" } = options;
   const container = document.getElementById("itemList");
+  if (!container) return;
+
   container.innerHTML = "";
 
   const today = new Date().toISOString().split("T")[0];
+  const entries = Object.entries(data || {});
+
   let count = 0;
 
-  Object.entries(data).forEach(([id, item]) => {
-    const isArchived = item.archive === true || item.toDate < today;
-    const isActive = !isArchived;
+  entries.forEach(([id, item]) => {
+    if (item.type !== selectedType) return;
 
-    if ((isArchived && !showArchived) || (isActive && !showActive)) return;
+    const isArchived = item.archive === true;
+    const isExpired = item.toDate && item.toDate < today;
+
+    if (isArchived && !showArchived) return;
+    if (!isArchived && !showActive) return;
     if (selectedCats.length > 0 && !selectedCats.includes(item.category)) return;
 
-    const itemDiv = document.createElement("div");
-    itemDiv.className = "item";
+    const div = document.createElement("div");
+    div.className = "item";
 
-    const qr = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://hittv.netlify.app/detail.html?id=${id}`;
-    const preview = `<img src="${item.imageUrl}" alt="náhled" style="max-width:100%;border-radius:4px;">`;
-    const price = item.type === "zbozi" ? `<p><strong>Cena:</strong> ${item.price} Kč</p>` : "";
-    const archiveBtn = isArchived
-      ? `<button onclick="activateItem('${id}')">Aktivovat</button>`
-      : `<button onclick="archiveItem('${id}')">Archivovat</button>`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&format=svg&data=https://hittv.netlify.app/detail.html?id=${id}`;
 
-    itemDiv.innerHTML = `
-      <input type="checkbox" class="video-checkbox" value="${id}">
-      <a href="/detail.html?id=${id}" target="_blank">${preview}</a>
+    const mediaEl = createMediaElement(item.imageUrl);
+
+    const infoHtml = `
       <div class="info">
-        <div class="qr"><img src="${qr}" alt="QR kód"></div>
+        <div class="qr"><img src="${qrUrl}" alt="QR"></div>
         <div class="text">
-          <p><strong>Kategorie:</strong> ${item.category}</p>
-          <p><strong>Popis:</strong> ${item.description}</p>
-          ${price}
+          <strong>${item.category}</strong><br>
+          ${item.description || ""}
+          ${item.type === "zbozi" ? `<br><strong>${item.price} Kč</strong>` : ""}
         </div>
       </div>
+    `;
+
+    const actionsHtml = `
       <div class="actions">
-        <button onclick="window.open('/detail.html?id=${id}', '_blank')">Náhled</button>
-        <button onclick="window.open('/admin/admin-detail-edit.html?id=${id}', '_blank')">Edit</button>
-        ${archiveBtn}
+        ${isArchived
+          ? `<button onclick="activateItem('${id}')">Aktivovat</button>`
+          : `<button onclick="archiveItem('${id}')">Archivovat</button>`}
         <button onclick="deleteItem('${id}')">Vymazat</button>
+        <button onclick="window.open('/admin/admin-detail-edit.html?id=${id}', '_blank')">Edit</button>
+        <button onclick="window.open('/detail.html?id=${id}', '_blank')">Náhled</button>
+        <input type="checkbox" class="video-checkbox" value="${id}" title="Vybrat pro video">
       </div>
     `;
-    container.appendChild(itemDiv);
+
+    div.appendChild(mediaEl);
+
+    const infoWrapper = document.createElement("div");
+    infoWrapper.innerHTML = infoHtml;
+    div.appendChild(infoWrapper);
+
+    const actionsWrapper = document.createElement("div");
+    actionsWrapper.innerHTML = actionsHtml;
+    div.appendChild(actionsWrapper);
+
+    container.appendChild(div);
     count++;
   });
 
-  if (count === 0) container.innerHTML = "<p>Žádné položky k zobrazení.</p>";
+  if (count === 0) {
+    container.innerHTML = "<p>Žádné položky k zobrazení.</p>";
+  }
+}
+
+export function createMediaElement(url) {
+  const isVideo = url?.endsWith(".mp4") || url?.endsWith(".webm");
+  if (isVideo) {
+    const video = document.createElement("video");
+    video.src = url;
+    video.autoplay = true;
+    video.muted = true;
+    video.loop = true;
+    video.playsInline = true;
+    video.style.maxWidth = "100%";
+    video.style.borderRadius = "4px";
+    return video;
+  } else {
+    const img = document.createElement("img");
+    img.src = url;
+    img.className = "preview";
+    img.alt = "náhled";
+    img.style.maxWidth = "100%";
+    img.style.borderRadius = "4px";
+    return img;
+  }
 }
