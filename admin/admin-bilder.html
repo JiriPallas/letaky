@@ -1,11 +1,11 @@
-<!-- admin/admin-bilder.html v1.14 -->
+<!-- admin/admin-bilder.html v1.15 -->
 <!DOCTYPE html>
 <html lang="cs">
 
 <head>
   <script>
     const FILE_NAME = "admin/admin-bilder.html";
-    const FILE_VERSION = "v. 1.14";
+    const FILE_VERSION = "v. 1.15";
   </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -22,7 +22,7 @@
     }
 
     .controls {
-      flex: 0 0 260px;
+      flex: 0 0 250px;
       background: white;
       padding: 1rem;
       border-radius: 8px;
@@ -32,13 +32,13 @@
       gap: 1rem;
     }
 
-    fieldset {
+    .fieldset {
       border: 1px solid #ccc;
-      border-radius: 4px;
-      padding: 0.5rem 1rem 1rem 1rem;
+      padding: 0.5rem;
+      border-radius: 5px;
     }
 
-    fieldset legend {
+    .fieldset legend {
       font-weight: bold;
       padding: 0 0.5rem;
     }
@@ -48,28 +48,15 @@
       display: flex;
       flex-direction: column;
       gap: 0.3rem;
-      margin-top: 0.3rem;
     }
 
     .nav-button {
-      margin-top: 0.5rem;
-      display: inline-block;
       padding: 0.5rem 1rem;
       background: #007bff;
       color: white;
       text-decoration: none;
       border-radius: 4px;
       text-align: center;
-    }
-
-    #versionInfo {
-      font-size: 0.9rem;
-      color: #666;
-      margin-top: auto;
-    }
-
-    .output {
-      flex: 1;
     }
 
     .grid {
@@ -91,9 +78,9 @@
 
     .info {
       display: flex;
+      justify-content: space-between;
       gap: 1rem;
       margin-top: 1rem;
-      align-items: flex-start;
     }
 
     .qr img {
@@ -118,20 +105,25 @@
       font-size: 0.9rem;
       cursor: pointer;
     }
+
+    #versionInfo {
+      font-size: 0.9rem;
+      color: #666;
+    }
   </style>
 </head>
 
 <body>
   <div class="controls">
-    <fieldset>
-      <legend>Typ položky</legend>
+    <fieldset class="fieldset">
+      <legend>Typ</legend>
       <div class="radio-group">
         <label><input type="radio" name="typeFilter" value="zbozi" checked> Zboží</label>
         <label><input type="radio" name="typeFilter" value="letak"> Leták</label>
       </div>
     </fieldset>
 
-    <fieldset>
+    <fieldset class="fieldset">
       <legend>Status</legend>
       <div class="radio-group">
         <label><input type="radio" name="statusFilter" value="active" checked> Aktivní</label>
@@ -139,7 +131,7 @@
       </div>
     </fieldset>
 
-    <fieldset>
+    <fieldset class="fieldset">
       <legend>Kategorie</legend>
       <div class="checkbox-group" id="categoryFilters"></div>
     </fieldset>
@@ -158,6 +150,7 @@
   <script type="module">
     import { renderItemGrid, fetchItems } from './modules/helpers.js';
     import { archiveItem, activateItem, deleteItem } from './modules/actions.js';
+
     window.archiveItem = archiveItem;
     window.activateItem = activateItem;
     window.deleteItem = deleteItem;
@@ -165,31 +158,28 @@
     document.getElementById("versionInfo").textContent = `${FILE_NAME} ${FILE_VERSION}`;
 
     let allItems = {};
+    let selectedType = "zbozi";
 
     function filterItems() {
-      const selectedType = document.querySelector("input[name=typeFilter]:checked")?.value;
-      const selectedStatus = document.querySelector("input[name=statusFilter]:checked")?.value;
+      const showActive = document.querySelector('input[name="statusFilter"]:checked').value === "active";
+      const showArchived = !showActive;
       const selectedCats = Array.from(document.querySelectorAll("#categoryFilters input:checked")).map(cb => cb.value);
-      renderItemGrid(allItems, { selectedType, selectedStatus, selectedCats });
+      renderItemGrid(allItems, { showActive, showArchived, selectedCats, selectedType });
     }
 
-    function populateCategoryFilters(items) {
-      const categories = new Set(Object.values(items).map(i => i.category));
-      const wrapper = document.getElementById("categoryFilters");
-      wrapper.innerHTML = "";
-      categories.forEach(cat => {
-        const label = document.createElement("label");
-        label.innerHTML = `<input type="checkbox" value="${cat}" checked> ${cat}`;
-        wrapper.appendChild(label);
+    document.querySelectorAll('input[name="typeFilter"]').forEach(rb => {
+      rb.addEventListener("change", (e) => {
+        selectedType = e.target.value;
+        filterItems();
       });
-      wrapper.querySelectorAll("input").forEach(cb => cb.addEventListener("change", filterItems));
-    }
+    });
 
-    document.querySelectorAll("input[name=typeFilter]").forEach(r => r.addEventListener("change", filterItems));
-    document.querySelectorAll("input[name=statusFilter]").forEach(r => r.addEventListener("change", filterItems));
+    document.querySelectorAll('input[name="statusFilter"]').forEach(rb => {
+      rb.addEventListener("change", filterItems);
+    });
 
     document.getElementById("createVideo").addEventListener("click", () => {
-      const checkboxes = document.querySelectorAll(".video-checkbox:checked");
+      const checkboxes = document.querySelectorAll('.video-checkbox:checked');
       if (checkboxes.length < 2) {
         alert("Vyberte alespoň 2 položky pro video.");
         return;
@@ -201,7 +191,15 @@
 
     fetchItems((items) => {
       allItems = items;
-      populateCategoryFilters(items);
+      const catSet = new Set(Object.values(items).map(i => i.category));
+      const container = document.getElementById("categoryFilters");
+      container.innerHTML = "";
+      catSet.forEach(cat => {
+        const label = document.createElement("label");
+        label.innerHTML = `<input type="checkbox" value="${cat}" checked> ${cat}`;
+        container.appendChild(label);
+      });
+      container.querySelectorAll("input").forEach(cb => cb.addEventListener("change", filterItems));
       filterItems();
     });
   </script>
