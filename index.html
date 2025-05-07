@@ -1,4 +1,4 @@
-<!-- index.html v1.5 -->
+<!-- index.html v1.6 -->
 <!DOCTYPE html>
 <html lang="cs">
 
@@ -17,18 +17,16 @@
       margin-bottom: 1rem;
     }
 
-    #categoryFilters {
-      margin-bottom: 2rem;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
+    fieldset {
+      border: 1px solid #ccc;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 8px;
     }
 
-    #categoryFilters label {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-weight: normal;
+    legend {
+      font-weight: bold;
+      padding: 0 0.5rem;
     }
 
     .grid {
@@ -80,7 +78,24 @@
 
 <body>
   <h1>HitTV – Nabídky</h1>
-  <div id="categoryFilters"></div>
+
+  <fieldset>
+    <legend>Typ položky</legend>
+    <label><input type="radio" name="typeFilter" value="zbozi" checked> Zboží</label>
+    <label><input type="radio" name="typeFilter" value="letak"> Leták</label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Stav</legend>
+    <label><input type="radio" name="statusFilter" value="active" checked> Aktivní</label>
+    <label><input type="radio" name="statusFilter" value="archived"> Archivované</label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Kategorie</legend>
+    <div id="categoryFilters"></div>
+  </fieldset>
+
   <div class="grid" id="itemGrid">
     <p>Načítání…</p>
   </div>
@@ -117,12 +132,20 @@
       return selected.includes("Všechny") || selected.length === 0 ? [] : selected;
     }
 
+    function getSelectedType() {
+      return document.querySelector("input[name='typeFilter']:checked")?.value;
+    }
+
+    function getSelectedStatus() {
+      return document.querySelector("input[name='statusFilter']:checked")?.value;
+    }
+
     function renderCategoryFilters(categories) {
       const unique = Array.from(new Set(categories));
       categoryFilters.innerHTML = "";
 
       const all = document.createElement("label");
-      all.innerHTML = `<input type="checkbox" value="Všechny" checked> Všechny kategorie`;
+      all.innerHTML = `<input type="checkbox" value="Všechny" checked> Všechny`;
       categoryFilters.appendChild(all);
 
       unique.forEach(cat => {
@@ -138,20 +161,26 @@
       grid.innerHTML = "";
       const entries = Object.entries(data || {});
       const selectedCats = getSelectedCategories();
+      const selectedType = getSelectedType();
+      const selectedStatus = getSelectedStatus();
       let count = 0;
 
       entries.forEach(([id, item]) => {
-        if (!isActive(item)) return;
+        const today = new Date().toISOString().split("T")[0];
+        const isArchived = item.archive === true || item.toDate < today;
+        if (selectedStatus === "active" && isArchived) return;
+        if (selectedStatus === "archived" && !isArchived) return;
         if (selectedCats.length > 0 && !selectedCats.includes(item.category)) return;
+        if (item.type !== selectedType) return;
 
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&format=svg&data=https://hittv.netlify.app/detail.html?id=${id}`;
-        const div = document.createElement("div");
-        div.className = "item";
-
         const isVideo = item.imageUrl?.endsWith(".mp4") || item.imageUrl?.endsWith(".webm");
         const media = isVideo
           ? `<video class="preview" src="${item.imageUrl}" autoplay loop muted playsinline></video>`
           : `<img class="preview" src="${item.imageUrl}" alt="náhled">`;
+
+        const div = document.createElement("div");
+        div.className = "item";
 
         div.innerHTML = `
           <a href="https://hittv.netlify.app/detail.html?id=${id}">
@@ -172,7 +201,7 @@
       });
 
       if (count === 0) {
-        grid.innerHTML = "<p>Žádné aktivní nabídky.</p>";
+        grid.innerHTML = "<p>Žádné odpovídající položky.</p>";
       }
     }
 
@@ -185,6 +214,9 @@
         renderCategoryFilters(categories);
         renderItems(allItems);
       });
+
+      document.querySelectorAll("input[name='typeFilter'], input[name='statusFilter']")
+        .forEach(r => r.addEventListener("change", () => renderItems(allItems)));
     }
 
     setup();
