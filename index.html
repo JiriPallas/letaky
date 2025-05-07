@@ -1,54 +1,34 @@
-<!-- admin/admin-bilder.html v1.14 -->
+<!-- index.html v1.5 -->
 <!DOCTYPE html>
 <html lang="cs">
 
 <head>
-  <script>
-    const FILE_NAME = "admin/admin-bilder.html";
-    const FILE_VERSION = "v. 1.14";
-  </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin – Aktivní položky</title>
-  <script type="module" src="./modules/helpers.js"></script>
-  <script type="module" src="./modules/actions.js"></script>
+  <title>HitTV – Nabídky</title>
   <style>
     body {
       font-family: sans-serif;
       padding: 2rem;
       background: #f7f7f7;
+    }
+
+    h1 {
+      margin-bottom: 1rem;
+    }
+
+    #categoryFilters {
+      margin-bottom: 2rem;
       display: flex;
-      gap: 2rem;
+      flex-wrap: wrap;
+      gap: 1rem;
     }
 
-    .controls {
-      flex: 0 0 280px;
-      background: white;
-      padding: 1rem;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    }
-
-    .controls img.logo {
-      width: 140px;
-      display: block;
-      margin: 0 auto 1rem auto;
-    }
-
-    fieldset {
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      margin-bottom: 1.5rem;
-      padding: 0.5rem 1rem;
-    }
-
-    fieldset legend {
-      font-weight: bold;
-      padding: 0 0.5rem;
-    }
-
-    .output {
-      flex: 1;
+    #categoryFilters label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: normal;
     }
 
     .grid {
@@ -68,11 +48,17 @@
       min-height: 360px;
     }
 
+    .preview {
+      max-width: 100%;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
     .info {
       display: flex;
       gap: 1rem;
       margin-top: 1rem;
-      align-items: flex-end;
+      align-items: flex-start;
     }
 
     .qr img {
@@ -85,131 +71,123 @@
       font-size: 0.95rem;
     }
 
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-top: 0.5rem;
-    }
-
-    .actions button {
-      padding: 0.3rem 0.8rem;
-      font-size: 0.9rem;
-      cursor: pointer;
-    }
-
-    .checkbox-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    #versionInfo {
-      font-size: 0.9rem;
-      color: #666;
-      margin-top: 2rem;
-    }
-
-    .nav-button {
-      margin-top: 1rem;
-      display: inline-block;
-      padding: 0.5rem 1rem;
-      background: #007bff;
-      color: white;
-      text-decoration: none;
-      border-radius: 4px;
+    .label {
+      font-weight: bold;
+      display: block;
     }
   </style>
 </head>
 
 <body>
-  <div class="controls">
-    <img src="/admin/modules/97228ed8-9a6f-4c89-bd2b-08136bdad631.png" class="logo" alt="HitTV logo" />
-
-    <fieldset>
-      <legend>Status</legend>
-      <label><input type="radio" name="statusFilter" value="aktivni" checked> Aktivní</label><br>
-      <label><input type="radio" name="statusFilter" value="archivovane"> Archivované</label>
-    </fieldset>
-
-    <fieldset>
-      <legend>Typ</legend>
-      <label><input type="radio" name="typeFilter" value="zbozi" checked> Zboží</label><br>
-      <label><input type="radio" name="typeFilter" value="letak"> Leták</label>
-    </fieldset>
-
-    <fieldset>
-      <legend>Kategorie</legend>
-      <div class="checkbox-group" id="categoryFilters"></div>
-    </fieldset>
-
-    <a href="/admin/" class="nav-button">Nový záznam</a>
-    <button class="nav-button" id="createVideo">Vytvoř video</button>
-
-    <div id="versionInfo"></div>
-  </div>
-
-  <div class="output">
-    <div class="grid" id="itemList">
-      <p>Načítání…</p>
-    </div>
+  <h1>HitTV – Nabídky</h1>
+  <div id="categoryFilters"></div>
+  <div class="grid" id="itemGrid">
+    <p>Načítání…</p>
   </div>
 
   <script type="module">
-    import { renderItemGrid, fetchItems } from './modules/helpers.js';
-    import { archiveItem, activateItem, deleteItem } from './modules/actions.js';
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
 
-    window.archiveItem = archiveItem;
-    window.activateItem = activateItem;
-    window.deleteItem = deleteItem;
+    const firebaseConfig = {
+      apiKey: "AIzaSyCFlTsn1ESQddd_7Neq-W6LBGRiT92c-5w",
+      authDomain: "letaky-aa6ab.firebaseapp.com",
+      databaseURL: "https://letaky-aa6ab-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "letaky-aa6ab",
+      storageBucket: "letaky-aa6ab.firebasestorage.app",
+      messagingSenderId: "814346215288",
+      appId: "1:814346215288:web:445f9700dac9b81cd8f28d"
+    };
 
-    document.getElementById("versionInfo").textContent = `${FILE_NAME} ${FILE_VERSION}`;
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const grid = document.getElementById("itemGrid");
+    const categoryFilters = document.getElementById("categoryFilters");
 
     let allItems = {};
 
-    function filterItems() {
-      const status = document.querySelector("input[name=statusFilter]:checked").value;
-      const selectedType = document.querySelector("input[name=typeFilter]:checked").value;
-      const selectedCats = Array.from(document.querySelectorAll("#categoryFilters input:checked")).map(cb => cb.value);
-      renderItemGrid(allItems, {
-        showActive: status === "aktivni",
-        showArchived: status === "archivovane",
-        selectedType,
-        selectedCats
-      });
+    function isActive(item) {
+      const today = new Date().toISOString().split("T")[0];
+      return item.archive !== true && item.toDate >= today;
     }
 
-    function populateCategoryFilters(items) {
-      const catSet = new Set(Object.values(items).map(i => i.category));
-      const categoryFilters = document.getElementById("categoryFilters");
+    function getSelectedCategories() {
+      const checked = categoryFilters.querySelectorAll("input[type=checkbox]:checked");
+      const selected = Array.from(checked).map(cb => cb.value);
+      return selected.includes("Všechny") || selected.length === 0 ? [] : selected;
+    }
+
+    function renderCategoryFilters(categories) {
+      const unique = Array.from(new Set(categories));
       categoryFilters.innerHTML = "";
-      catSet.forEach(cat => {
+
+      const all = document.createElement("label");
+      all.innerHTML = `<input type="checkbox" value="Všechny" checked> Všechny kategorie`;
+      categoryFilters.appendChild(all);
+
+      unique.forEach(cat => {
         const label = document.createElement("label");
         label.innerHTML = `<input type="checkbox" value="${cat}"> ${cat}`;
         categoryFilters.appendChild(label);
       });
-      categoryFilters.querySelectorAll("input").forEach(cb => cb.addEventListener("change", filterItems));
+
+      categoryFilters.addEventListener("change", () => renderItems(allItems));
     }
 
-    document.querySelectorAll("input[name=statusFilter]").forEach(r => r.addEventListener("change", filterItems));
-    document.querySelectorAll("input[name=typeFilter]").forEach(r => r.addEventListener("change", filterItems));
+    function renderItems(data) {
+      grid.innerHTML = "";
+      const entries = Object.entries(data || {});
+      const selectedCats = getSelectedCategories();
+      let count = 0;
 
-    document.getElementById("createVideo").addEventListener("click", () => {
-      const checkboxes = document.querySelectorAll('.video-checkbox:checked');
-      if (checkboxes.length < 2) {
-        alert("Vyberte alespoň 2 položky pro video.");
-        return;
+      entries.forEach(([id, item]) => {
+        if (!isActive(item)) return;
+        if (selectedCats.length > 0 && !selectedCats.includes(item.category)) return;
+
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&format=svg&data=https://hittv.netlify.app/detail.html?id=${id}`;
+        const div = document.createElement("div");
+        div.className = "item";
+
+        const isVideo = item.imageUrl?.endsWith(".mp4") || item.imageUrl?.endsWith(".webm");
+        const media = isVideo
+          ? `<video class="preview" src="${item.imageUrl}" autoplay loop muted playsinline></video>`
+          : `<img class="preview" src="${item.imageUrl}" alt="náhled">`;
+
+        div.innerHTML = `
+          <a href="https://hittv.netlify.app/detail.html?id=${id}">
+            ${media}
+          </a>
+          <div class="info">
+            <div class="qr"><img src="${qrUrl}" alt="QR kód"></div>
+            <div class="text">
+              <span class="label">Kategorie:</span> ${item.category}<br>
+              <span class="label">Popis:</span> ${item.description}<br>
+              ${item.type === 'zbozi' ? `<span class="label">Cena:</span> ${item.price} Kč` : ""}
+            </div>
+          </div>
+        `;
+
+        grid.appendChild(div);
+        count++;
+      });
+
+      if (count === 0) {
+        grid.innerHTML = "<p>Žádné aktivní nabídky.</p>";
       }
-      const ids = Array.from(checkboxes).map(cb => cb.value);
-      const query = ids.map(id => `id=${id}`).join("&");
-      window.open(`/video.html?${query}`, "_blank");
-    });
+    }
 
-    fetchItems((items) => {
-      allItems = items;
-      populateCategoryFilters(items);
-      filterItems();
-    });
+    function setup() {
+      const refData = ref(db, "items");
+      onValue(refData, (snapshot) => {
+        const data = snapshot.val();
+        allItems = data || {};
+        const categories = Object.values(allItems).map(i => i.category);
+        renderCategoryFilters(categories);
+        renderItems(allItems);
+      });
+    }
+
+    setup();
   </script>
 </body>
 
