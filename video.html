@@ -116,7 +116,7 @@
             authDomain: "letaky-aa6ab.firebaseapp.com",
             databaseURL: "https://letaky-aa6ab-default-rtdb.europe-west1.firebasedatabase.app",
             projectId: "letaky-aa6ab",
-            storageBucket: "letaky-aa6ab.firebasestorage.app",
+            storageBucket: "letaky-aa6ab.appspot.com",
             messagingSenderId: "814346215288",
             appId: "1:814346215288:web:445f9700dac9b81cd8f28d"
         };
@@ -171,4 +171,40 @@
         }
 
         async function loadItems() {
-            for (
+            for (const id of ids) {
+                const snapshot = await get(ref(db, "items/" + id));
+                if (snapshot.exists()) {
+                    const item = snapshot.val();
+                    item.id = id;
+                    items.push(item);
+                }
+            }
+
+            sideItems.innerHTML = '';
+            items.forEach((item) => {
+                const qr = `https://api.qrserver.com/v1/create-qr-code/?size=60x60&format=svg&data=https://hittv.netlify.app/detail.html?id=${item.id}`;
+                const row = document.createElement("div");
+                row.className = "side-item";
+
+                const media = createMediaElement(item.imageUrl);
+                const qrEl = document.createElement("img");
+                qrEl.src = qr;
+                qrEl.className = "qr-small";
+
+                row.appendChild(media);
+                row.appendChild(qrEl);
+                sideItems.appendChild(row);
+            });
+
+            showItem(0);
+            setInterval(() => {
+                currentIndex = (currentIndex + 1) % items.length;
+                showItem(currentIndex);
+            }, 5000);
+        }
+
+        loadItems();
+    </script>
+</body>
+
+</html>
